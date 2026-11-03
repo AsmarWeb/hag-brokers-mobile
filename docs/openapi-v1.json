@@ -1,0 +1,4025 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "HAG Brokers Mobile & Integration API",
+    "version": "1.2.0",
+    "description": "Authentication, public marketplace, company opportunity operations, RFQ offers, private negotiation messages and scoped company notifications. Native push, standalone media editing, payments and partner credentials are not yet API features. JSON request/response; UTC ISO 8601 timestamps; decimal money strings. Errors follow Laravel message/errors format. 120 requests/min/IP overall; login/register/reset 5/min/IP each, forgot/resend 3/min/IP each. Store Bearer secrets in OS secure storage. Render user content as text. Native bearer authentication only; cookie sessions are insufficient."
+  },
+  "servers": [
+    {
+      "url": "https://hagbrokers.net/api/v1"
+    },
+    {
+      "url": "http://localhost:8080/api/v1"
+    }
+  ],
+  "paths": {
+    "/auth/register": {
+      "post": {
+        "summary": "Register individual or company",
+        "security": [],
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/Token"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Bearer token missing or expired"
+          },
+          "403": {
+            "description": "Forbidden or invalid signature"
+          },
+          "404": {
+            "description": "Unavailable resource"
+          },
+          "422": {
+            "description": "Validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit; respect Retry-After"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "account_type": {
+                    "type": "string",
+                    "enum": ["individual", "company"]
+                  },
+                  "name": {
+                    "type": "string",
+                    "maxLength": 160
+                  },
+                  "email": {
+                    "type": "string",
+                    "format": "email"
+                  },
+                  "password": {
+                    "type": "string",
+                    "minLength": 12,
+                    "maxLength": 128,
+                    "writeOnly": true
+                  },
+                  "password_confirmation": {
+                    "type": "string",
+                    "minLength": 12,
+                    "maxLength": 128,
+                    "writeOnly": true
+                  },
+                  "device_name": {
+                    "type": "string",
+                    "maxLength": 80
+                  },
+                  "company_name": {
+                    "type": "string",
+                    "maxLength": 255
+                  },
+                  "phone": {
+                    "type": "string",
+                    "maxLength": 50
+                  },
+                  "country_code": {
+                    "type": "string",
+                    "pattern": "^[A-Za-z]{2}$"
+                  },
+                  "city": {
+                    "type": "string",
+                    "maxLength": 255
+                  }
+                },
+                "required": [
+                  "account_type",
+                  "name",
+                  "email",
+                  "password",
+                  "password_confirmation",
+                  "device_name"
+                ]
+              }
+            }
+          }
+        },
+        "description": "Company registration additionally requires company_name, phone, country_code. Creates a free workspace atomically. Individuals cannot publish as companies. Privileged identity fields are rejected. No payment is created.",
+        "parameters": [
+          {
+            "name": "lang",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": ["ar", "en"]
+            }
+          }
+        ]
+      }
+    },
+    "/auth/login": {
+      "post": {
+        "summary": "Issue device token",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/Token"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Bearer token missing or expired"
+          },
+          "403": {
+            "description": "Forbidden or invalid signature"
+          },
+          "404": {
+            "description": "Unavailable resource"
+          },
+          "422": {
+            "description": "Validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit; respect Retry-After"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "format": "email"
+                  },
+                  "password": {
+                    "type": "string",
+                    "writeOnly": true
+                  },
+                  "device_name": {
+                    "type": "string",
+                    "maxLength": 80
+                  }
+                },
+                "required": ["email", "password", "device_name"]
+              }
+            }
+          }
+        },
+        "description": "30-day token. Replaces token with same device_name, retains up to 20 mobile devices. Platform admins cannot use this API.",
+        "parameters": [
+          {
+            "name": "lang",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": ["ar", "en"]
+            }
+          }
+        ]
+      }
+    },
+    "/auth/forgot-password": {
+      "post": {
+        "summary": "Request password reset",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Bearer token missing or expired"
+          },
+          "403": {
+            "description": "Forbidden or invalid signature"
+          },
+          "404": {
+            "description": "Unavailable resource"
+          },
+          "422": {
+            "description": "Validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit; respect Retry-After"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "format": "email"
+                  }
+                },
+                "required": ["email"]
+              }
+            }
+          }
+        },
+        "description": "Generic message whether account exists. Email opens existing secure website password-reset screen; no native deep link required.",
+        "parameters": [
+          {
+            "name": "lang",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": ["ar", "en"]
+            }
+          }
+        ]
+      }
+    },
+    "/auth/reset-password": {
+      "post": {
+        "summary": "Reset password and revoke all tokens",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Bearer token missing or expired"
+          },
+          "403": {
+            "description": "Forbidden or invalid signature"
+          },
+          "404": {
+            "description": "Unavailable resource"
+          },
+          "422": {
+            "description": "Validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit; respect Retry-After"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "format": "email"
+                  },
+                  "token": {
+                    "type": "string"
+                  },
+                  "password": {
+                    "type": "string",
+                    "minLength": 12,
+                    "maxLength": 128,
+                    "writeOnly": true
+                  },
+                  "password_confirmation": {
+                    "type": "string",
+                    "minLength": 12,
+                    "maxLength": 128,
+                    "writeOnly": true
+                  }
+                },
+                "required": [
+                  "email",
+                  "token",
+                  "password",
+                  "password_confirmation"
+                ]
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "lang",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": ["ar", "en"]
+            }
+          }
+        ]
+      }
+    },
+    "/auth/verify-email/{id}/{hash}": {
+      "get": {
+        "summary": "Verify email using signed email URL",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "email_verified": {
+                          "type": "boolean"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Bearer token missing or expired"
+          },
+          "403": {
+            "description": "Forbidden or invalid signature"
+          },
+          "404": {
+            "description": "Unavailable resource"
+          },
+          "422": {
+            "description": "Validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit; respect Retry-After"
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "hash",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "expires",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "signature",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "lang",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": ["ar", "en"]
+            }
+          }
+        ],
+        "description": "Open the full signed URL received by email; no token needed. Expires after 60 minutes. Never construct or modify signature in the client."
+      }
+    },
+    "/me": {
+      "get": {
+        "summary": "Current account",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/User"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Bearer token missing or expired"
+          },
+          "403": {
+            "description": "Forbidden or invalid signature"
+          },
+          "404": {
+            "description": "Unavailable resource"
+          },
+          "422": {
+            "description": "Validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit; respect Retry-After"
+          }
+        },
+        "parameters": [
+          {
+            "name": "lang",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": ["ar", "en"]
+            }
+          }
+        ]
+      }
+    },
+    "/auth/logout": {
+      "post": {
+        "summary": "Revoke current device",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Success, empty body"
+          },
+          "401": {
+            "description": "Bearer token missing or expired"
+          },
+          "403": {
+            "description": "Forbidden or invalid signature"
+          },
+          "404": {
+            "description": "Unavailable resource"
+          },
+          "422": {
+            "description": "Validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit; respect Retry-After"
+          }
+        },
+        "parameters": [
+          {
+            "name": "lang",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": ["ar", "en"]
+            }
+          }
+        ]
+      }
+    },
+    "/auth/devices": {
+      "get": {
+        "summary": "List own mobile tokens",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "integer"
+                          },
+                          "device_name": {
+                            "type": "string"
+                          },
+                          "last_used_at": {
+                            "type": ["string", "null"]
+                          },
+                          "expires_at": {
+                            "type": ["string", "null"]
+                          },
+                          "current": {
+                            "type": "boolean"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Bearer token missing or expired"
+          },
+          "403": {
+            "description": "Forbidden or invalid signature"
+          },
+          "404": {
+            "description": "Unavailable resource"
+          },
+          "422": {
+            "description": "Validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit; respect Retry-After"
+          }
+        },
+        "parameters": [
+          {
+            "name": "lang",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": ["ar", "en"]
+            }
+          }
+        ]
+      }
+    },
+    "/auth/devices/{device}": {
+      "delete": {
+        "summary": "Revoke own mobile device",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Success, empty body"
+          },
+          "401": {
+            "description": "Bearer token missing or expired"
+          },
+          "403": {
+            "description": "Forbidden or invalid signature"
+          },
+          "404": {
+            "description": "Unavailable resource"
+          },
+          "422": {
+            "description": "Validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit; respect Retry-After"
+          }
+        },
+        "parameters": [
+          {
+            "name": "device",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "lang",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": ["ar", "en"]
+            }
+          }
+        ]
+      }
+    },
+    "/auth/verification-email": {
+      "post": {
+        "summary": "Resend verification email",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Bearer token missing or expired"
+          },
+          "403": {
+            "description": "Forbidden or invalid signature"
+          },
+          "404": {
+            "description": "Unavailable resource"
+          },
+          "422": {
+            "description": "Validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit; respect Retry-After"
+          }
+        },
+        "parameters": [
+          {
+            "name": "lang",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": ["ar", "en"]
+            }
+          }
+        ]
+      }
+    },
+    "/company/workspace": {
+      "get": {
+        "summary": "Read active verified company workspace and plan",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/Workspace"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Bearer token missing or expired"
+          },
+          "403": {
+            "description": "Forbidden or invalid signature"
+          },
+          "404": {
+            "description": "Unavailable resource"
+          },
+          "422": {
+            "description": "Validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit; respect Retry-After"
+          }
+        },
+        "description": "Requires verified email and matching active company membership. Individual accounts have no workspace. Uses existing plan/entitlement service; free-launch policy is respected.",
+        "parameters": [
+          {
+            "name": "lang",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": ["ar", "en"]
+            }
+          }
+        ]
+      }
+    },
+    "/catalog": {
+      "get": {
+        "summary": "Supported trade taxonomy and currencies",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/Catalog"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Bearer token missing or expired"
+          },
+          "403": {
+            "description": "Forbidden or invalid signature"
+          },
+          "404": {
+            "description": "Unavailable resource"
+          },
+          "422": {
+            "description": "Validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit; respect Retry-After"
+          }
+        },
+        "description": "Contains types, categories, subcategories, currencies, units and languages. Listing country is currently stored as text. No automatic currency conversion.",
+        "parameters": [
+          {
+            "name": "lang",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": ["ar", "en"]
+            }
+          }
+        ]
+      }
+    },
+    "/opportunities": {
+      "get": {
+        "summary": "Browse eligible public opportunities",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Opportunity"
+                      }
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "current_page": {
+                          "type": "integer"
+                        },
+                        "per_page": {
+                          "type": "integer"
+                        },
+                        "total": {
+                          "type": "integer"
+                        },
+                        "last_page": {
+                          "type": "integer"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Bearer token missing or expired"
+          },
+          "403": {
+            "description": "Forbidden or invalid signature"
+          },
+          "404": {
+            "description": "Unavailable resource"
+          },
+          "422": {
+            "description": "Validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit; respect Retry-After"
+          }
+        },
+        "parameters": [
+          {
+            "name": "search",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "type",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "category",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "country",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 10000
+            }
+          },
+          {
+            "name": "per_page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50
+            }
+          },
+          {
+            "name": "lang",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": ["ar", "en"]
+            }
+          }
+        ],
+        "description": "Newest first, id as tie-breaker. Pagination meta: current_page, per_page, total, last_page. Default per_page=20, maximum=50. Uses shared public eligibility, including moderation and company suspension."
+      }
+    },
+    "/opportunities/{slug}": {
+      "get": {
+        "summary": "Public opportunity details",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/OpportunityDetail"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Bearer token missing or expired"
+          },
+          "403": {
+            "description": "Forbidden or invalid signature"
+          },
+          "404": {
+            "description": "Unavailable resource"
+          },
+          "422": {
+            "description": "Validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit; respect Retry-After"
+          }
+        },
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "lang",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": ["ar", "en"]
+            }
+          }
+        ],
+        "description": "Slug only; numeric IDs do not redirect. Unavailable/private listings return 404 without leaking details."
+      }
+    },
+    "/companies/{slug}": {
+      "get": {
+        "summary": "Published active company public profile",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/Company"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Bearer token missing or expired"
+          },
+          "403": {
+            "description": "Forbidden or invalid signature"
+          },
+          "404": {
+            "description": "Unavailable resource"
+          },
+          "422": {
+            "description": "Validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit; respect Retry-After"
+          }
+        },
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "lang",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": ["ar", "en"]
+            }
+          }
+        ],
+        "description": "Explicit public fields only: slug, localized name/about, sector, country, city, specialties, markets, website and up to 12 eligible opportunities. No private registration documents or customer contact records."
+      }
+    },
+    "/company/opportunities": {
+      "get": {
+        "summary": "List own company opportunities including nonpublic state",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/CompanyOpportunity"
+                      }
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "current_page": {
+                          "type": "integer"
+                        },
+                        "per_page": {
+                          "type": "integer"
+                        },
+                        "total": {
+                          "type": "integer"
+                        },
+                        "last_page": {
+                          "type": "integer"
+                        }
+                      }
+                    },
+                    "usage": {
+                      "type": "object",
+                      "properties": {
+                        "active": {
+                          "type": "integer"
+                        },
+                        "active_limit": {
+                          "type": "integer"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token missing/expired"
+          },
+          "403": {
+            "description": "Verified active company owner/manager required"
+          },
+          "404": {
+            "description": "Not owned or missing"
+          },
+          "409": {
+            "description": "Revision changed; reload and review"
+          },
+          "422": {
+            "description": "Validation, immutable field, quota or idempotency conflict"
+          },
+          "429": {
+            "description": "Rate limit; respect Retry-After"
+          }
+        },
+        "parameters": [
+          {
+            "name": "per_page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 10000
+            }
+          },
+          {
+            "name": "state",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": ["published", "closed"]
+            }
+          },
+          {
+            "name": "lang",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": ["ar", "en"]
+            }
+          }
+        ]
+      },
+      "post": {
+        "summary": "Publish company opportunity",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/CompanyOpportunity"
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "created": {
+                          "type": "boolean"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token missing/expired"
+          },
+          "403": {
+            "description": "Verified active company owner/manager required"
+          },
+          "404": {
+            "description": "Not owned or missing"
+          },
+          "409": {
+            "description": "Revision changed; reload and review"
+          },
+          "422": {
+            "description": "Validation, immutable field, quota or idempotency conflict"
+          },
+          "429": {
+            "description": "Rate limit; respect Retry-After"
+          },
+          "200": {
+            "description": "Identical retry: existing opportunity, meta.created=false",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/CompanyOpportunity"
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "created": {
+                          "type": "boolean"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "lang",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": ["ar", "en"]
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CompanyOpportunityCreate"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/CompanyOpportunityCreate"
+              }
+            }
+          }
+        },
+        "description": "Owner/manager only. Same business quotas, storage cleanup and immutable audit as website. Publish rate 15/min/IP. No charge, deal, invoice or payment is created."
+      }
+    },
+    "/company/opportunities/{opportunityId}": {
+      "get": {
+        "summary": "Own company opportunity and current revision",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/CompanyOpportunity"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token missing/expired"
+          },
+          "403": {
+            "description": "Verified active company owner/manager required"
+          },
+          "404": {
+            "description": "Not owned or missing"
+          },
+          "409": {
+            "description": "Revision changed; reload and review"
+          },
+          "422": {
+            "description": "Validation, immutable field, quota or idempotency conflict"
+          },
+          "429": {
+            "description": "Rate limit; respect Retry-After"
+          }
+        },
+        "parameters": [
+          {
+            "name": "opportunityId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          {
+            "name": "lang",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": ["ar", "en"]
+            }
+          }
+        ],
+        "description": "Private leader-only route; numeric internal ID. Revision covers stored opportunity, marine specification, media identity and moderation state, including same-second changes. Stale update/close returns 409. Read again before retrying; never automatically replace revision after a conflict. Closed/expired opportunities cannot be edited or reopened. Edits cannot clear administrative hold. 30 writes/min/IP per action."
+      },
+      "patch": {
+        "summary": "Edit allowed fields with optimistic concurrency",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/CompanyOpportunity"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token missing/expired"
+          },
+          "403": {
+            "description": "Verified active company owner/manager required"
+          },
+          "404": {
+            "description": "Not owned or missing"
+          },
+          "409": {
+            "description": "Revision changed; reload and review"
+          },
+          "422": {
+            "description": "Validation, immutable field, quota or idempotency conflict"
+          },
+          "429": {
+            "description": "Rate limit; respect Retry-After"
+          }
+        },
+        "parameters": [
+          {
+            "name": "opportunityId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          {
+            "name": "lang",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": ["ar", "en"]
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CompanyOpportunityEdit"
+              }
+            }
+          }
+        },
+        "description": "Private leader-only route; numeric internal ID. Revision covers stored opportunity, marine specification, media identity and moderation state, including same-second changes. Stale update/close returns 409. Read again before retrying; never automatically replace revision after a conflict. Closed/expired opportunities cannot be edited or reopened. Edits cannot clear administrative hold. 30 writes/min/IP per action."
+      }
+    },
+    "/company/opportunities/{opportunityId}/close": {
+      "post": {
+        "summary": "Close without deleting opportunity or history",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/CompanyOpportunity"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token missing/expired"
+          },
+          "403": {
+            "description": "Verified active company owner/manager required"
+          },
+          "404": {
+            "description": "Not owned or missing"
+          },
+          "409": {
+            "description": "Revision changed; reload and review"
+          },
+          "422": {
+            "description": "Validation, immutable field, quota or idempotency conflict"
+          },
+          "429": {
+            "description": "Rate limit; respect Retry-After"
+          }
+        },
+        "parameters": [
+          {
+            "name": "opportunityId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          {
+            "name": "lang",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": ["ar", "en"]
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "revision": {
+                    "type": "string",
+                    "pattern": "^[a-f0-9]{64}$"
+                  },
+                  "confirmation": {
+                    "type": "boolean",
+                    "const": true
+                  }
+                },
+                "required": ["revision", "confirmation"]
+              }
+            }
+          }
+        },
+        "description": "Private leader-only route; numeric internal ID. Revision covers stored opportunity, marine specification, media identity and moderation state, including same-second changes. Stale update/close returns 409. Read again before retrying; never automatically replace revision after a conflict. Closed/expired opportunities cannot be edited or reopened. Edits cannot clear administrative hold. 30 writes/min/IP per action."
+      }
+    },
+    "/company/opportunities/{opportunityId}/offers": {
+      "get": {
+        "summary": "Compare offers for own buying opportunity",
+        "description": "",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "opportunityId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 10000
+            }
+          },
+          {
+            "name": "per_page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50
+            }
+          },
+          {
+            "name": "lang",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": ["ar", "en"]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/TradeOffer"
+                      }
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "current_page": {
+                          "type": "integer"
+                        },
+                        "per_page": {
+                          "type": "integer"
+                        },
+                        "total": {
+                          "type": "integer"
+                        },
+                        "last_page": {
+                          "type": "integer"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Bearer missing/expired"
+          },
+          "403": {
+            "description": "Verified active company owner/manager required"
+          },
+          "404": {
+            "description": "Not owned/party or unavailable"
+          },
+          "409": {
+            "description": "Integrity check failed"
+          },
+          "422": {
+            "description": "Invalid input, quota, stale version, replay conflict or business rule"
+          },
+          "429": {
+            "description": "Rate limit; respect Retry-After"
+          }
+        }
+      },
+      "post": {
+        "summary": "Submit private structured RFQ offer",
+        "description": "Only public company buy/service_request/procurement opportunities from another company. Up to3 attachments: PDF/JPG/PNG, 5MiB each and10MiB total. valid_until today to90 days inclusive in Dubai. Currency and unit from catalog. One offer per supplier company/opportunity. Persist request_key and identical terms/files/name/order on retry. Replay does not consume another application quota. No invoice, payment or contract is created.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "opportunityId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          {
+            "name": "lang",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": ["ar", "en"]
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/TradeOffer"
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "created": {
+                          "type": "boolean"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Bearer missing/expired"
+          },
+          "403": {
+            "description": "Verified active company owner/manager required"
+          },
+          "404": {
+            "description": "Not owned/party or unavailable"
+          },
+          "409": {
+            "description": "Integrity check failed"
+          },
+          "422": {
+            "description": "Invalid input, quota, stale version, replay conflict or business rule"
+          },
+          "429": {
+            "description": "Rate limit; respect Retry-After"
+          },
+          "200": {
+            "description": "Identical retry reuses offer; meta.created=false",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/TradeOffer"
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "created": {
+                          "type": "boolean"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TradeOfferInput"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/TradeOfferInput"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/company/trade-offers": {
+      "get": {
+        "summary": "List offers for current company",
+        "description": "",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 10000
+            }
+          },
+          {
+            "name": "per_page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50
+            }
+          },
+          {
+            "name": "direction",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": ["sent", "received"]
+            }
+          },
+          {
+            "name": "lang",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": ["ar", "en"]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/TradeOffer"
+                      }
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "current_page": {
+                          "type": "integer"
+                        },
+                        "per_page": {
+                          "type": "integer"
+                        },
+                        "total": {
+                          "type": "integer"
+                        },
+                        "last_page": {
+                          "type": "integer"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Bearer missing/expired"
+          },
+          "403": {
+            "description": "Verified active company owner/manager required"
+          },
+          "404": {
+            "description": "Not owned/party or unavailable"
+          },
+          "409": {
+            "description": "Integrity check failed"
+          },
+          "422": {
+            "description": "Invalid input, quota, stale version, replay conflict or business rule"
+          },
+          "429": {
+            "description": "Rate limit; respect Retry-After"
+          }
+        }
+      }
+    },
+    "/company/trade-offers/{offerId}": {
+      "get": {
+        "summary": "Read private offer terms and integrity state",
+        "description": "",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "offerId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          {
+            "name": "lang",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": ["ar", "en"]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/TradeOffer"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Bearer missing/expired"
+          },
+          "403": {
+            "description": "Verified active company owner/manager required"
+          },
+          "404": {
+            "description": "Not owned/party or unavailable"
+          },
+          "409": {
+            "description": "Integrity check failed"
+          },
+          "422": {
+            "description": "Invalid input, quota, stale version, replay conflict or business rule"
+          },
+          "429": {
+            "description": "Rate limit; respect Retry-After"
+          }
+        }
+      }
+    },
+    "/company/trade-offers/{offerId}/events": {
+      "get": {
+        "summary": "Read immutable offer decision history",
+        "description": "",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "offerId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 10000
+            }
+          },
+          {
+            "name": "per_page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50
+            }
+          },
+          {
+            "name": "lang",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": ["ar", "en"]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "version": {
+                            "type": "integer"
+                          },
+                          "action": {
+                            "type": "string"
+                          },
+                          "reason": {
+                            "type": "string"
+                          },
+                          "actor_name": {
+                            "type": "string"
+                          },
+                          "created_at": {
+                            "type": "string",
+                            "format": "date-time"
+                          }
+                        }
+                      }
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "current_page": {
+                          "type": "integer"
+                        },
+                        "per_page": {
+                          "type": "integer"
+                        },
+                        "total": {
+                          "type": "integer"
+                        },
+                        "last_page": {
+                          "type": "integer"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Bearer missing/expired"
+          },
+          "403": {
+            "description": "Verified active company owner/manager required"
+          },
+          "404": {
+            "description": "Not owned/party or unavailable"
+          },
+          "409": {
+            "description": "Integrity check failed"
+          },
+          "422": {
+            "description": "Invalid input, quota, stale version, replay conflict or business rule"
+          },
+          "429": {
+            "description": "Rate limit; respect Retry-After"
+          }
+        }
+      }
+    },
+    "/company/trade-offers/{offerId}/decision": {
+      "post": {
+        "summary": "Select, decline or withdraw offer",
+        "description": "Publisher selects/declines; supplier withdraws. Uses current integer version from GET. Stale/repeated decision returns422; reload and review, do not blindly retry. At most one selected offer per opportunity. Selection is not a signed contract or charge.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "offerId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          {
+            "name": "lang",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": ["ar", "en"]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/TradeOffer"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Bearer missing/expired"
+          },
+          "403": {
+            "description": "Verified active company owner/manager required"
+          },
+          "404": {
+            "description": "Not owned/party or unavailable"
+          },
+          "409": {
+            "description": "Integrity check failed"
+          },
+          "422": {
+            "description": "Invalid input, quota, stale version, replay conflict or business rule"
+          },
+          "429": {
+            "description": "Rate limit; respect Retry-After"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "action": {
+                    "type": "string",
+                    "enum": ["selected", "declined", "withdrawn"]
+                  },
+                  "version": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "reason": {
+                    "type": "string",
+                    "minLength": 10,
+                    "maxLength": 1000
+                  },
+                  "confirmed": {
+                    "type": "boolean",
+                    "const": true
+                  }
+                },
+                "required": ["action", "version", "reason", "confirmed"]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/company/trade-offers/{offerId}/attachments/{file}": {
+      "get": {
+        "summary": "Download authenticated integrity-checked private attachment",
+        "description": "Zero-based file index. Must send Bearer header when downloading. No public URL, filesystem path or checksum is returned. Nosniff and private,no-store headers. Wrong file integrity409.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "offerId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          {
+            "name": "file",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          {
+            "name": "lang",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": ["ar", "en"]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/pdf": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              },
+              "image/jpeg": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              },
+              "image/png": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Bearer missing/expired"
+          },
+          "403": {
+            "description": "Verified active company owner/manager required"
+          },
+          "404": {
+            "description": "Not owned/party or unavailable"
+          },
+          "409": {
+            "description": "Integrity check failed"
+          },
+          "422": {
+            "description": "Invalid input, quota, stale version, replay conflict or business rule"
+          },
+          "429": {
+            "description": "Rate limit; respect Retry-After"
+          }
+        }
+      }
+    },
+    "/company/trade-offers/{offerId}/messages": {
+      "get": {
+        "summary": "Poll private JSON message feed without acknowledging read",
+        "description": "after_id and before_id mutually exclusive. Default newest30, returned in ascending ID order. after_id fetches earliest newer messages; before_id fetches nearest older messages. has_more applies in requested direction. Keep cursor unchanged on empty response. No HTML. No implicit read. Pause polling in background; respect429.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "offerId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          {
+            "name": "after_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          {
+            "name": "before_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50
+            }
+          },
+          {
+            "name": "lang",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": ["ar", "en"]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/NegotiationMessage"
+                      }
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "has_more": {
+                          "type": "boolean"
+                        },
+                        "first_id": {
+                          "type": ["integer", "null"]
+                        },
+                        "last_id": {
+                          "type": ["integer", "null"]
+                        }
+                      }
+                    },
+                    "room": {
+                      "type": "object",
+                      "properties": {
+                        "writable": {
+                          "type": "boolean"
+                        },
+                        "own_read_up_to": {
+                          "type": "integer"
+                        },
+                        "other_read_up_to": {
+                          "type": "integer"
+                        },
+                        "unread": {
+                          "type": "integer"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Bearer missing/expired"
+          },
+          "403": {
+            "description": "Verified active company owner/manager required"
+          },
+          "404": {
+            "description": "Not owned/party or unavailable"
+          },
+          "409": {
+            "description": "Integrity check failed"
+          },
+          "422": {
+            "description": "Invalid input, quota, stale version, replay conflict or business rule"
+          },
+          "429": {
+            "description": "Rate limit; respect Retry-After"
+          }
+        }
+      },
+      "post": {
+        "summary": "Send text message idempotently",
+        "description": "Same key, actor and normalized body returns same message; changed body422. Text only. No edit/delete. Closed/declined/withdrawn/unavailable sources are read-only. No HTML rendering in client.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "offerId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          {
+            "name": "lang",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": ["ar", "en"]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/NegotiationMessage"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Bearer missing/expired"
+          },
+          "403": {
+            "description": "Verified active company owner/manager required"
+          },
+          "404": {
+            "description": "Not owned/party or unavailable"
+          },
+          "409": {
+            "description": "Integrity check failed"
+          },
+          "422": {
+            "description": "Invalid input, quota, stale version, replay conflict or business rule"
+          },
+          "429": {
+            "description": "Rate limit; respect Retry-After"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "request_key": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "body": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 4000
+                  }
+                },
+                "required": ["request_key", "body"]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/company/trade-offers/{offerId}/read": {
+      "post": {
+        "summary": "Explicitly acknowledge company-shared message watermark",
+        "description": "Message must belong to this offer. Watermark only increases and is shared by current company leaders. Only acknowledge after displaying the relevant messages. Reading notification and acknowledging room are separate operations.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "offerId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          {
+            "name": "lang",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": ["ar", "en"]
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Success"
+          },
+          "401": {
+            "description": "Bearer missing/expired"
+          },
+          "403": {
+            "description": "Verified active company owner/manager required"
+          },
+          "404": {
+            "description": "Not owned/party or unavailable"
+          },
+          "409": {
+            "description": "Integrity check failed"
+          },
+          "422": {
+            "description": "Invalid input, quota, stale version, replay conflict or business rule"
+          },
+          "429": {
+            "description": "Rate limit; respect Retry-After"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "up_to": {
+                    "type": "integer",
+                    "minimum": 1
+                  }
+                },
+                "required": ["up_to"]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/company/notifications": {
+      "get": {
+        "summary": "Scoped current-user RFQ and moderation notifications",
+        "description": "Supported event types only, current user and current company targets. No chat bodies, RFQ terms, internal notes or raw URLs. GET does not mark read. unread count covers all eligible unread notifications, regardless current page/filter. No native push in this release.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 10000
+            }
+          },
+          {
+            "name": "per_page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50
+            }
+          },
+          {
+            "name": "unread",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "enum": [0, 1]
+            }
+          },
+          {
+            "name": "lang",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": ["ar", "en"]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/CompanyNotice"
+                      }
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "current_page": {
+                          "type": "integer"
+                        },
+                        "per_page": {
+                          "type": "integer"
+                        },
+                        "total": {
+                          "type": "integer"
+                        },
+                        "last_page": {
+                          "type": "integer"
+                        },
+                        "unread": {
+                          "type": "integer"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Bearer missing/expired"
+          },
+          "403": {
+            "description": "Verified active company owner/manager required"
+          },
+          "404": {
+            "description": "Not owned/party or unavailable"
+          },
+          "409": {
+            "description": "Integrity check failed"
+          },
+          "422": {
+            "description": "Invalid input, quota, stale version, replay conflict or business rule"
+          },
+          "429": {
+            "description": "Rate limit; respect Retry-After"
+          }
+        }
+      }
+    },
+    "/company/notifications/{notificationId}/read": {
+      "patch": {
+        "summary": "Mark own eligible notification read",
+        "description": "Idempotent and current-user scoped. Does not update room read watermark.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "notificationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "lang",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": ["ar", "en"]
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Success"
+          },
+          "401": {
+            "description": "Bearer missing/expired"
+          },
+          "403": {
+            "description": "Verified active company owner/manager required"
+          },
+          "404": {
+            "description": "Not owned/party or unavailable"
+          },
+          "409": {
+            "description": "Integrity check failed"
+          },
+          "422": {
+            "description": "Invalid input, quota, stale version, replay conflict or business rule"
+          },
+          "429": {
+            "description": "Rate limit; respect Retry-After"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "Sanctum personal access token"
+      }
+    },
+    "schemas": {
+      "User": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "email_verified": {
+            "type": "boolean"
+          },
+          "account_type": {
+            "type": "string",
+            "enum": ["individual", "company"]
+          },
+          "company": {
+            "type": ["object", "null"],
+            "properties": {
+              "workspace_id": {
+                "type": "integer"
+              },
+              "role": {
+                "type": "string",
+                "enum": ["owner", "manager", "member"]
+              },
+              "status": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      },
+      "Token": {
+        "type": "object",
+        "properties": {
+          "token_type": {
+            "type": "string",
+            "const": "Bearer"
+          },
+          "access_token": {
+            "type": "string"
+          },
+          "expires_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "user": {
+            "$ref": "#/components/schemas/User"
+          }
+        }
+      },
+      "Opportunity": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "category": {
+            "type": ["string", "null"]
+          },
+          "country": {
+            "type": ["string", "null"]
+          },
+          "city": {
+            "type": ["string", "null"]
+          },
+          "price": {
+            "type": ["string", "null"],
+            "description": "Exact original currency decimal; never a converted total."
+          },
+          "currency": {
+            "type": "string"
+          },
+          "published_at": {
+            "type": ["string", "null"],
+            "format": "date-time"
+          },
+          "expires_at": {
+            "type": ["string", "null"],
+            "format": "date-time"
+          },
+          "reviewed": {
+            "type": "boolean"
+          },
+          "media": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string"
+                },
+                "url": {
+                  "type": "string",
+                  "format": "uri-reference"
+                }
+              }
+            }
+          }
+        }
+      },
+      "OpportunityDetail": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/Opportunity"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "description": {
+                "type": "string"
+              },
+              "commercial_details": {
+                "type": "object",
+                "description": "Allowlisted public commercial fields."
+              },
+              "vessel": {
+                "type": ["object", "null"],
+                "description": "Public marine specification fields only."
+              }
+            }
+          }
+        ]
+      },
+      "Error": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string"
+          },
+          "errors": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      },
+      "Workspace": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "status": {
+            "type": "string"
+          },
+          "free_launch": {
+            "type": "boolean"
+          },
+          "plan": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "type": "string"
+              },
+              "name_ar": {
+                "type": "string"
+              },
+              "name_en": {
+                "type": "string"
+              },
+              "seats": {
+                "type": "integer"
+              },
+              "active_opportunities": {
+                "type": "integer"
+              },
+              "monthly_applications": {
+                "type": "integer"
+              },
+              "expires_at": {
+                "type": ["string", "null"]
+              }
+            }
+          }
+        }
+      },
+      "Company": {
+        "type": "object",
+        "properties": {
+          "slug": {
+            "type": ["string", "null"]
+          },
+          "name": {
+            "type": ["string", "null"]
+          },
+          "about": {
+            "type": ["string", "null"]
+          },
+          "sector": {
+            "type": ["string", "null"]
+          },
+          "country": {
+            "type": ["string", "null"]
+          },
+          "city": {
+            "type": ["string", "null"]
+          },
+          "specialties": {
+            "type": ["string", "null"]
+          },
+          "markets": {
+            "type": ["string", "null"]
+          },
+          "website": {
+            "type": ["string", "null"]
+          },
+          "opportunities": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Opportunity"
+            }
+          }
+        }
+      },
+      "Catalog": {
+        "type": "object",
+        "properties": {
+          "types": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "categories": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "currencies": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "units": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "languages": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "subcategories": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      },
+      "CompanyOpportunityCreate": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "maxLength": 255
+          },
+          "description": {
+            "type": "string",
+            "minLength": 20,
+            "maxLength": 20000
+          },
+          "category": {
+            "type": ["string", "null"]
+          },
+          "country": {
+            "type": ["string", "null"]
+          },
+          "city": {
+            "type": ["string", "null"]
+          },
+          "notes": {
+            "type": ["string", "null"]
+          },
+          "opportunity_type": {
+            "type": "string",
+            "enum": [
+              "sell",
+              "buy",
+              "service_offer",
+              "service_request",
+              "partnership",
+              "distribution",
+              "procurement",
+              "trade",
+              "business",
+              "investment",
+              "logistics",
+              "vessel_brokerage",
+              "other"
+            ]
+          },
+          "cargo_type": {
+            "type": ["string", "null"]
+          },
+          "container_type": {
+            "type": ["string", "null"]
+          },
+          "currency": {
+            "type": "string",
+            "pattern": "^[A-Za-z]{3}$"
+          },
+          "commission_type": {
+            "type": ["string", "null"]
+          },
+          "estimated_value": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^\\d+(\\.\\d{1,2})?$",
+                "description": "Exact decimal; send a string, never a float."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "required_capital": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^\\d+(\\.\\d{1,2})?$",
+                "description": "Exact decimal; send a string, never a float."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "min_investment": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^\\d+(\\.\\d{1,2})?$",
+                "description": "Exact decimal; send a string, never a float."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "commission_rate": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^\\d+(\\.\\d{1,2})?$",
+                "description": "Exact decimal; send a string, never a float."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "origin_port_id": {
+            "type": ["integer", "null"]
+          },
+          "destination_port_id": {
+            "type": ["integer", "null"]
+          },
+          "expires_at": {
+            "type": "string",
+            "format": "date",
+            "description": "Required on creation. Inclusive calendar day in Asia/Dubai; response uses stored UTC timestamp."
+          },
+          "expected_close_date": {
+            "type": ["string", "null"],
+            "format": "date"
+          },
+          "commercial_details": {
+            "type": "object",
+            "description": "Complete replacement when supplied. Allowed nested keys and industry-specific attributes are listed in OpportunityCatalog; invalid nested keys are rejected.",
+            "properties": {
+              "subcategory": {
+                "type": ["string", "null"]
+              },
+              "product_name": {
+                "type": ["string", "null"]
+              },
+              "specifications": {
+                "type": ["string", "null"]
+              },
+              "quantity": {
+                "type": ["string", "null"],
+                "pattern": "^\\d+(\\.\\d{1,3})?$"
+              },
+              "unit": {
+                "type": ["string", "null"]
+              },
+              "unit_price": {
+                "type": ["string", "null"],
+                "pattern": "^\\d+(\\.\\d{1,2})?$"
+              },
+              "price_basis": {
+                "type": ["string", "null"]
+              },
+              "min_order_quantity": {
+                "type": ["string", "null"],
+                "pattern": "^\\d+(\\.\\d{1,3})?$"
+              },
+              "condition": {
+                "type": ["string", "null"]
+              },
+              "delivery_terms": {
+                "type": ["string", "null"]
+              },
+              "payment_terms": {
+                "type": ["string", "null"]
+              },
+              "lead_time_days": {
+                "type": ["integer", "null"],
+                "minimum": 1,
+                "maximum": 3650
+              },
+              "target_market": {
+                "type": ["string", "null"]
+              },
+              "certifications": {
+                "type": ["string", "null"]
+              },
+              "features": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "attributes": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": ["string", "integer", "null"]
+                }
+              }
+            }
+          },
+          "vessel": {
+            "type": "object",
+            "description": "Required for marine vessel listings. Contains only public vessel fields. If supplied on PATCH, replaces the provided vessel specification as validated; omitted vessel keeps current specification.",
+            "properties": {
+              "listing_type": {
+                "type": "string",
+                "enum": ["sale", "wanted", "charter"]
+              },
+              "vessel_category": {
+                "type": "string",
+                "enum": ["yacht", "boat", "commercial_vessel"]
+              },
+              "vessel_name": {
+                "type": "string"
+              },
+              "builder": {
+                "type": "string"
+              },
+              "length_m": {
+                "type": "string",
+                "pattern": "^\\d+(\\.\\d{1,2})?$",
+                "description": "Exact decimal; send a string, never a float."
+              },
+              "year_built": {
+                "type": "integer"
+              },
+              "vessel_type": {
+                "type": ["string", "null"]
+              },
+              "engine_make": {
+                "type": ["string", "null"]
+              },
+              "imo_number": {
+                "type": ["string", "null"]
+              },
+              "flag_state": {
+                "type": ["string", "null"]
+              },
+              "classification_society": {
+                "type": ["string", "null"]
+              },
+              "condition": {
+                "type": ["string", "null"]
+              },
+              "beam_m": {
+                "type": ["string", "null"],
+                "pattern": "^\\d+(\\.\\d{1,2})?$"
+              },
+              "draft_m": {
+                "type": ["string", "null"],
+                "pattern": "^\\d+(\\.\\d{1,2})?$"
+              },
+              "gross_tonnage": {
+                "type": ["string", "null"],
+                "pattern": "^\\d+(\\.\\d{1,2})?$"
+              },
+              "deadweight_tonnage": {
+                "type": ["string", "null"],
+                "pattern": "^\\d+(\\.\\d{1,2})?$"
+              },
+              "cabins": {
+                "type": ["integer", "null"],
+                "minimum": 0
+              },
+              "guest_capacity": {
+                "type": ["integer", "null"],
+                "minimum": 0
+              },
+              "crew_capacity": {
+                "type": ["integer", "null"],
+                "minimum": 0
+              },
+              "engine_hours": {
+                "type": ["integer", "null"],
+                "minimum": 0
+              },
+              "price_on_request": {
+                "type": ["boolean", "null"]
+              }
+            }
+          },
+          "request_key": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Persist once per publication; resend unchanged complete payload and identical media in same order after uncertain response."
+          },
+          "media": {
+            "type": "array",
+            "maxItems": 10,
+            "items": {
+              "type": "string",
+              "format": "binary"
+            },
+            "description": "Multipart media[]: jpg/jpeg/png/webp or mp4/mov/webm, up to 10 files, 20 MiB each and 20 MiB total. Creation only; no arbitrary file URL/path accepted."
+          }
+        },
+        "required": [
+          "request_key",
+          "title",
+          "description",
+          "opportunity_type",
+          "currency",
+          "expires_at"
+        ]
+      },
+      "CompanyOpportunityEdit": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "maxLength": 255
+          },
+          "description": {
+            "type": "string",
+            "minLength": 20,
+            "maxLength": 20000
+          },
+          "category": {
+            "type": ["string", "null"]
+          },
+          "country": {
+            "type": ["string", "null"]
+          },
+          "city": {
+            "type": ["string", "null"]
+          },
+          "notes": {
+            "type": ["string", "null"]
+          },
+          "commercial_details": {
+            "type": "object",
+            "description": "Complete replacement when supplied. Allowed nested keys and industry-specific attributes are listed in OpportunityCatalog; invalid nested keys are rejected.",
+            "properties": {
+              "subcategory": {
+                "type": ["string", "null"]
+              },
+              "product_name": {
+                "type": ["string", "null"]
+              },
+              "specifications": {
+                "type": ["string", "null"]
+              },
+              "quantity": {
+                "type": ["string", "null"],
+                "pattern": "^\\d+(\\.\\d{1,3})?$"
+              },
+              "unit": {
+                "type": ["string", "null"]
+              },
+              "unit_price": {
+                "type": ["string", "null"],
+                "pattern": "^\\d+(\\.\\d{1,2})?$"
+              },
+              "price_basis": {
+                "type": ["string", "null"]
+              },
+              "min_order_quantity": {
+                "type": ["string", "null"],
+                "pattern": "^\\d+(\\.\\d{1,3})?$"
+              },
+              "condition": {
+                "type": ["string", "null"]
+              },
+              "delivery_terms": {
+                "type": ["string", "null"]
+              },
+              "payment_terms": {
+                "type": ["string", "null"]
+              },
+              "lead_time_days": {
+                "type": ["integer", "null"],
+                "minimum": 1,
+                "maximum": 3650
+              },
+              "target_market": {
+                "type": ["string", "null"]
+              },
+              "certifications": {
+                "type": ["string", "null"]
+              },
+              "features": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "attributes": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": ["string", "integer", "null"]
+                }
+              }
+            }
+          },
+          "vessel": {
+            "type": "object",
+            "description": "Required for marine vessel listings. Contains only public vessel fields. If supplied on PATCH, replaces the provided vessel specification as validated; omitted vessel keeps current specification.",
+            "properties": {
+              "listing_type": {
+                "type": "string",
+                "enum": ["sale", "wanted", "charter"]
+              },
+              "vessel_category": {
+                "type": "string",
+                "enum": ["yacht", "boat", "commercial_vessel"]
+              },
+              "vessel_name": {
+                "type": "string"
+              },
+              "builder": {
+                "type": "string"
+              },
+              "length_m": {
+                "type": "string",
+                "pattern": "^\\d+(\\.\\d{1,2})?$",
+                "description": "Exact decimal; send a string, never a float."
+              },
+              "year_built": {
+                "type": "integer"
+              },
+              "vessel_type": {
+                "type": ["string", "null"]
+              },
+              "engine_make": {
+                "type": ["string", "null"]
+              },
+              "imo_number": {
+                "type": ["string", "null"]
+              },
+              "flag_state": {
+                "type": ["string", "null"]
+              },
+              "classification_society": {
+                "type": ["string", "null"]
+              },
+              "condition": {
+                "type": ["string", "null"]
+              },
+              "beam_m": {
+                "type": ["string", "null"],
+                "pattern": "^\\d+(\\.\\d{1,2})?$"
+              },
+              "draft_m": {
+                "type": ["string", "null"],
+                "pattern": "^\\d+(\\.\\d{1,2})?$"
+              },
+              "gross_tonnage": {
+                "type": ["string", "null"],
+                "pattern": "^\\d+(\\.\\d{1,2})?$"
+              },
+              "deadweight_tonnage": {
+                "type": ["string", "null"],
+                "pattern": "^\\d+(\\.\\d{1,2})?$"
+              },
+              "cabins": {
+                "type": ["integer", "null"],
+                "minimum": 0
+              },
+              "guest_capacity": {
+                "type": ["integer", "null"],
+                "minimum": 0
+              },
+              "crew_capacity": {
+                "type": ["integer", "null"],
+                "minimum": 0
+              },
+              "engine_hours": {
+                "type": ["integer", "null"],
+                "minimum": 0
+              },
+              "price_on_request": {
+                "type": ["boolean", "null"]
+              }
+            }
+          },
+          "revision": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          }
+        },
+        "required": ["revision"],
+        "description": "PATCH. Omitted top-level fields retained. Full nested commercial_details when supplied. Ownership, type, prices, currency, commission, dates, state and media cannot be modified here."
+      },
+      "CompanyOpportunity": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "maxLength": 255
+          },
+          "description": {
+            "type": "string",
+            "minLength": 20,
+            "maxLength": 20000
+          },
+          "category": {
+            "type": ["string", "null"]
+          },
+          "country": {
+            "type": ["string", "null"]
+          },
+          "city": {
+            "type": ["string", "null"]
+          },
+          "notes": {
+            "type": ["string", "null"]
+          },
+          "opportunity_type": {
+            "type": "string",
+            "enum": [
+              "sell",
+              "buy",
+              "service_offer",
+              "service_request",
+              "partnership",
+              "distribution",
+              "procurement",
+              "trade",
+              "business",
+              "investment",
+              "logistics",
+              "vessel_brokerage",
+              "other"
+            ]
+          },
+          "cargo_type": {
+            "type": ["string", "null"]
+          },
+          "container_type": {
+            "type": ["string", "null"]
+          },
+          "currency": {
+            "type": "string",
+            "pattern": "^[A-Za-z]{3}$"
+          },
+          "commission_type": {
+            "type": ["string", "null"]
+          },
+          "estimated_value": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^\\d+(\\.\\d{1,2})?$",
+                "description": "Exact decimal; send a string, never a float."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "required_capital": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^\\d+(\\.\\d{1,2})?$",
+                "description": "Exact decimal; send a string, never a float."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "min_investment": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^\\d+(\\.\\d{1,2})?$",
+                "description": "Exact decimal; send a string, never a float."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "commission_rate": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^\\d+(\\.\\d{1,2})?$",
+                "description": "Exact decimal; send a string, never a float."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "origin_port_id": {
+            "type": ["integer", "null"]
+          },
+          "destination_port_id": {
+            "type": ["integer", "null"]
+          },
+          "expires_at": {
+            "type": ["string", "null"],
+            "format": "date-time"
+          },
+          "expected_close_date": {
+            "type": ["string", "null"],
+            "format": "date"
+          },
+          "commercial_details": {
+            "type": "object",
+            "description": "Complete replacement when supplied. Allowed nested keys and industry-specific attributes are listed in OpportunityCatalog; invalid nested keys are rejected.",
+            "properties": {
+              "subcategory": {
+                "type": ["string", "null"]
+              },
+              "product_name": {
+                "type": ["string", "null"]
+              },
+              "specifications": {
+                "type": ["string", "null"]
+              },
+              "quantity": {
+                "type": ["string", "null"],
+                "pattern": "^\\d+(\\.\\d{1,3})?$"
+              },
+              "unit": {
+                "type": ["string", "null"]
+              },
+              "unit_price": {
+                "type": ["string", "null"],
+                "pattern": "^\\d+(\\.\\d{1,2})?$"
+              },
+              "price_basis": {
+                "type": ["string", "null"]
+              },
+              "min_order_quantity": {
+                "type": ["string", "null"],
+                "pattern": "^\\d+(\\.\\d{1,3})?$"
+              },
+              "condition": {
+                "type": ["string", "null"]
+              },
+              "delivery_terms": {
+                "type": ["string", "null"]
+              },
+              "payment_terms": {
+                "type": ["string", "null"]
+              },
+              "lead_time_days": {
+                "type": ["integer", "null"],
+                "minimum": 1,
+                "maximum": 3650
+              },
+              "target_market": {
+                "type": ["string", "null"]
+              },
+              "certifications": {
+                "type": ["string", "null"]
+              },
+              "features": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "attributes": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": ["string", "integer", "null"]
+                }
+              }
+            }
+          },
+          "vessel": {
+            "type": "object",
+            "description": "Required for marine vessel listings. Contains only public vessel fields. If supplied on PATCH, replaces the provided vessel specification as validated; omitted vessel keeps current specification.",
+            "properties": {
+              "listing_type": {
+                "type": "string",
+                "enum": ["sale", "wanted", "charter"]
+              },
+              "vessel_category": {
+                "type": "string",
+                "enum": ["yacht", "boat", "commercial_vessel"]
+              },
+              "vessel_name": {
+                "type": "string"
+              },
+              "builder": {
+                "type": "string"
+              },
+              "length_m": {
+                "type": "string",
+                "pattern": "^\\d+(\\.\\d{1,2})?$",
+                "description": "Exact decimal; send a string, never a float."
+              },
+              "year_built": {
+                "type": "integer"
+              },
+              "vessel_type": {
+                "type": ["string", "null"]
+              },
+              "engine_make": {
+                "type": ["string", "null"]
+              },
+              "imo_number": {
+                "type": ["string", "null"]
+              },
+              "flag_state": {
+                "type": ["string", "null"]
+              },
+              "classification_society": {
+                "type": ["string", "null"]
+              },
+              "condition": {
+                "type": ["string", "null"]
+              },
+              "beam_m": {
+                "type": ["string", "null"],
+                "pattern": "^\\d+(\\.\\d{1,2})?$"
+              },
+              "draft_m": {
+                "type": ["string", "null"],
+                "pattern": "^\\d+(\\.\\d{1,2})?$"
+              },
+              "gross_tonnage": {
+                "type": ["string", "null"],
+                "pattern": "^\\d+(\\.\\d{1,2})?$"
+              },
+              "deadweight_tonnage": {
+                "type": ["string", "null"],
+                "pattern": "^\\d+(\\.\\d{1,2})?$"
+              },
+              "cabins": {
+                "type": ["integer", "null"],
+                "minimum": 0
+              },
+              "guest_capacity": {
+                "type": ["integer", "null"],
+                "minimum": 0
+              },
+              "crew_capacity": {
+                "type": ["integer", "null"],
+                "minimum": 0
+              },
+              "engine_hours": {
+                "type": ["integer", "null"],
+                "minimum": 0
+              },
+              "price_on_request": {
+                "type": ["boolean", "null"]
+              }
+            }
+          },
+          "id": {
+            "type": "integer"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "revision": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "marketplace_state": {
+            "type": ["string", "null"]
+          },
+          "is_public": {
+            "type": "boolean"
+          },
+          "administratively_hidden": {
+            "type": "boolean"
+          },
+          "reviewed": {
+            "type": "boolean"
+          },
+          "published_at": {
+            "type": ["string", "null"],
+            "format": "date-time"
+          },
+          "media": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "integer"
+                },
+                "type": {
+                  "type": "string"
+                },
+                "url": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      },
+      "TradeOffer": {
+        "type": "object",
+        "description": "If integrity=false, only id and integrity are returned. Hide prior cached terms and disable actions.",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "integrity": {
+            "type": "boolean"
+          },
+          "opportunity_id": {
+            "type": "integer"
+          },
+          "sender_workspace_id": {
+            "type": "integer"
+          },
+          "publisher_workspace_id": {
+            "type": "integer"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["submitted", "selected", "declined", "withdrawn"]
+          },
+          "version": {
+            "type": "integer"
+          },
+          "quantity": {
+            "type": "string",
+            "pattern": "^\\d+\\.\\d{3}$"
+          },
+          "unit": {
+            "type": "string"
+          },
+          "unit_price": {
+            "type": "string",
+            "pattern": "^\\d+\\.\\d{2}$"
+          },
+          "base_amount": {
+            "type": "string",
+            "description": "Exact rounded quantity × unit_price, not invoice or tax total."
+          },
+          "currency": {
+            "type": "string"
+          },
+          "tax_basis": {
+            "type": "string",
+            "enum": ["exclusive", "inclusive", "not_specified"]
+          },
+          "delivery_days": {
+            "type": "integer"
+          },
+          "valid_until": {
+            "type": "string",
+            "format": "date"
+          },
+          "payment_terms": {
+            "type": "string"
+          },
+          "notes": {
+            "type": ["string", "null"]
+          },
+          "snapshot": {
+            "type": "object",
+            "properties": {
+              "title": {
+                "type": "string"
+              },
+              "type": {
+                "type": "string"
+              },
+              "publisher": {
+                "type": "string"
+              },
+              "sender": {
+                "type": "string"
+              }
+            }
+          },
+          "attachments": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "index": {
+                  "type": "integer"
+                },
+                "size": {
+                  "type": "integer"
+                },
+                "download_path": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      },
+      "TradeOfferInput": {
+        "type": "object",
+        "properties": {
+          "request_key": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "quantity": {
+            "type": "string",
+            "pattern": "^\\d+(\\.\\d{1,3})?$"
+          },
+          "unit": {
+            "type": "string"
+          },
+          "unit_price": {
+            "type": "string",
+            "pattern": "^\\d+(\\.\\d{1,2})?$"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "tax_basis": {
+            "type": "string",
+            "enum": ["exclusive", "inclusive", "not_specified"]
+          },
+          "delivery_days": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 3650
+          },
+          "valid_until": {
+            "type": "string",
+            "format": "date"
+          },
+          "payment_terms": {
+            "type": "string",
+            "minLength": 10,
+            "maxLength": 1000
+          },
+          "notes": {
+            "type": ["string", "null"],
+            "maxLength": 3000
+          },
+          "confirmed": {
+            "type": "boolean",
+            "const": true
+          },
+          "attachments": {
+            "type": "array",
+            "maxItems": 3,
+            "items": {
+              "type": "string",
+              "format": "binary"
+            }
+          }
+        },
+        "required": [
+          "request_key",
+          "quantity",
+          "unit",
+          "unit_price",
+          "currency",
+          "tax_basis",
+          "delivery_days",
+          "valid_until",
+          "payment_terms",
+          "confirmed"
+        ]
+      },
+      "NegotiationMessage": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "body": {
+            "type": "string"
+          },
+          "author_name": {
+            "type": "string"
+          },
+          "mine": {
+            "type": "boolean"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "CompanyNotice": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "rfq.submitted",
+              "rfq.selected",
+              "rfq.declined",
+              "rfq.withdrawn",
+              "rfq.message",
+              "marketplace.moderation.hide",
+              "marketplace.moderation.restore"
+            ]
+          },
+          "title": {
+            "type": "string"
+          },
+          "offer_id": {
+            "type": ["integer", "null"]
+          },
+          "opportunity_id": {
+            "type": ["integer", "null"]
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "read_at": {
+            "type": ["string", "null"],
+            "format": "date-time"
+          }
+        }
+      }
+    }
+  }
+}

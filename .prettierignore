@@ -1,0 +1,8 @@
+node_modules
+.expo
+dist-web
+dist-native
+package-lock.json
+assets
+dist-verified
+backups/
