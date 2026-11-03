@@ -11,6 +11,7 @@ if (
 )
   throw new Error("Use an HTTPS origin without credentials or path");
 for (const [path, status] of [
+  ["/app-config", 200],
   ["/catalog", 200],
   ["/opportunities?per_page=1", 200],
   ["/me", 401],

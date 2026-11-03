@@ -1,5 +1,13 @@
 import React, { useState } from "react";
-import { Image, Pressable, View, ScrollView, Linking } from "react-native";
+import {
+  Image,
+  Pressable,
+  View,
+  ScrollView,
+  Linking,
+  TextInput,
+  Text,
+} from "react-native";
 import {
   Badge,
   Button,
@@ -15,11 +23,34 @@ import {
   useApp,
   useLoad,
 } from "../ui";
+import { BrandImage } from "./Welcome";
 import { safeMedia } from "../core/api";
 import type { Catalog, Listing, Page } from "../core/types";
 import { label } from "../core/labels";
+const sectorIcons: Record<string, React.ComponentProps<typeof Icon>["name"]> = {
+  marine: "boat-outline",
+  logistics: "cube-outline",
+  automotive: "car-outline",
+  real_estate: "home-outline",
+  construction: "construct-outline",
+  food: "restaurant-outline",
+  technology: "hardware-chip-outline",
+  energy: "flash-outline",
+  consumer_goods: "bag-handle-outline",
+  services: "briefcase-outline",
+  industrial: "cog-outline",
+};
 export function Market() {
-  const { api, ar, t, go, c } = useApp();
+  const {
+    api,
+    ar,
+    t,
+    go,
+    c,
+    user,
+    appConfig: config,
+    reloadAppConfig,
+  } = useApp();
   const [search, setSearch] = useState(""),
     [term, setTerm] = useState(""),
     [category, setCategory] = useState(""),
@@ -39,67 +70,252 @@ export function Market() {
       { auth: false },
     ),
   );
+  const marine = useLoad("marine-" + ar + config.show_marine, () =>
+    config.show_marine
+      ? api.request<Page<Listing>>(
+          "/opportunities?category=marine&per_page=5",
+          { auth: false },
+        )
+      : Promise.resolve({
+          data: [],
+          meta: { current_page: 1, last_page: 1, total: 0, per_page: 5 },
+        }),
+  );
+  const sectors = (catalog.data?.data.categories ?? []).filter(
+    (v) => !config.categories.length || config.categories.includes(v),
+  );
+  function refresh() {
+    q.reload();
+    catalog.reload();
+    marine.reload();
+    reloadAppConfig();
+  }
+  function submit() {
+    setTerm(search.trim());
+    setPage(1);
+  }
   return (
-    <Screen>
-      <Txt style={{ color: c.gold }} size={12}>
-        {t("من الإمارات إلى العالم", "From the UAE to the world")}
-      </Txt>
-      <Title
-        title={t(
-          "فرص تجارية. علاقات تصنع الفرق.",
-          "Business opportunities. Meaningful connections.",
-        )}
-        sub={t(
-          "موردون وطلبات شراء وشراكات جديدة.",
-          "Suppliers, buying requests and new partnerships.",
-        )}
-      />
-      <Field
-        title={t("البحث في السوق", "Search the marketplace")}
-        value={search}
-        set={setSearch}
-      />
-      <Button
-        title={t("بحث", "Search")}
-        onPress={() => {
-          setTerm(search.trim());
-          setPage(1);
+    <Screen refreshing={q.busy && !!q.data} onRefresh={refresh}>
+      <Row between>
+        <View style={{ flex: 1 }}>
+          <Txt muted size={12}>
+            {t("مرحبًا بك", "Welcome")}
+            {user ? "، " + user.name.split(" ")[0] : ""}
+          </Txt>
+          <Txt bold size={25}>
+            {ar ? config.home_title_ar : config.home_title_en}
+          </Txt>
+        </View>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={t("حسابي", "My account")}
+          onPress={() => go({ name: "account" })}
+          style={{
+            width: 46,
+            height: 46,
+            borderRadius: 23,
+            backgroundColor: c.soft,
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <Icon name="person-outline" />
+        </Pressable>
+      </Row>
+      <View
+        style={{
+          marginTop: 18,
+          marginBottom: 18,
+          borderRadius: 24,
+          overflow: "hidden",
         }}
-      />
+      >
+        <BrandImage uri={config.home_image} height={265}>
+          <View
+            style={{
+              flex: 1,
+              justifyContent: "flex-end",
+              padding: 20,
+              backgroundColor: "rgba(2,24,38,0.27)",
+            }}
+          >
+            <Text
+              style={{
+                fontSize: 11,
+                color: "#F2DEB5",
+                letterSpacing: 2,
+                textAlign: ar ? "right" : "left",
+              }}
+            >
+              HAG BROKERS · UAE
+            </Text>
+            <Text
+              style={{
+                fontSize: 25,
+                fontWeight: "700",
+                lineHeight: 34,
+                color: "white",
+                textAlign: ar ? "right" : "left",
+                marginTop: 8,
+              }}
+            >
+              {t("حيث تلتقي التجارة بالفرص", "Where trade meets opportunity")}
+            </Text>
+            <Text
+              style={{
+                fontSize: 13,
+                color: "#EAF1F4",
+                lineHeight: 22,
+                textAlign: ar ? "right" : "left",
+                marginTop: 8,
+              }}
+            >
+              {ar ? config.home_body_ar : config.home_body_en}
+            </Text>
+          </View>
+        </BrandImage>
+      </View>
+      <View
+        style={{
+          flexDirection: ar ? "row-reverse" : "row",
+          alignItems: "center",
+          backgroundColor: c.panel,
+          borderRadius: 18,
+          borderWidth: 1,
+          borderColor: c.line,
+          paddingHorizontal: 14,
+          gap: 10,
+        }}
+      >
+        <Icon name="search-outline" />
+        <TextInput
+          accessibilityLabel={t("البحث في الفرص", "Search opportunities")}
+          placeholder={t("عن أي فرصة تبحث؟", "What are you looking for?")}
+          placeholderTextColor={c.muted}
+          value={search}
+          onChangeText={setSearch}
+          onSubmitEditing={submit}
+          returnKeyType="search"
+          maxLength={150}
+          style={{
+            flex: 1,
+            color: c.text,
+            textAlign: ar ? "right" : "left",
+            minHeight: 54,
+            fontSize: 14,
+          }}
+        />
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={t("بحث", "Search")}
+          onPress={submit}
+          style={{
+            minHeight: 44,
+            minWidth: 44,
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <Icon name={ar ? "arrow-back" : "arrow-forward"} />
+        </Pressable>
+      </View>
+      {(ar ? config.announcement_ar : config.announcement_en) ? (
+        <View
+          style={{
+            marginTop: 16,
+            padding: 16,
+            backgroundColor: c.soft,
+            borderRadius: 18,
+          }}
+        >
+          <Txt size={13}>
+            {ar ? config.announcement_ar : config.announcement_en}
+          </Txt>
+        </View>
+      ) : null}
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        style={{ marginVertical: 15 }}
+        style={{ marginVertical: 20 }}
         contentContainerStyle={{
-          gap: 8,
+          gap: 10,
           flexDirection: ar ? "row-reverse" : "row",
         }}
       >
-        {["", ...(catalog.data?.data.categories ?? [])].map((v) => (
+        {["", ...sectors].map((v) => (
           <Pressable
-            accessibilityRole="button"
             key={v}
+            accessibilityRole="button"
+            accessibilityState={{ selected: category === v }}
             onPress={() => {
               setCategory(v);
               setPage(1);
             }}
             style={{
-              backgroundColor: category === v ? c.soft : c.panel,
+              alignItems: "center",
               padding: 12,
-              borderRadius: 12,
+              minWidth: 86,
+              maxWidth: 135,
+              borderRadius: 18,
+              backgroundColor: category === v ? c.soft : c.panel,
               borderWidth: 1,
               borderColor: category === v ? c.gold : c.line,
+              gap: 8,
             }}
           >
-            <Txt size={12}>
-              {v ? label(v, ar) : t("جميع القطاعات", "All sectors")}
-            </Txt>
+            <Icon name={sectorIcons[v] ?? "grid-outline"} size={25} />
+            <Txt size={11}>{v ? label(v, ar) : t("الكل", "All")}</Txt>
           </Pressable>
         ))}
       </ScrollView>
+      {config.show_marine &&
+        !category &&
+        !term &&
+        page === 1 &&
+        (marine.data?.data.length ?? 0) > 0 && (
+          <View style={{ marginBottom: 20 }}>
+            <Row between>
+              <Txt bold size={20}>
+                {t("عالم البحر", "The marine collection")}
+              </Txt>
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => {
+                  setCategory("marine");
+                  setPage(1);
+                }}
+                style={{ padding: 10 }}
+              >
+                <Txt size={12} style={{ color: c.gold }}>
+                  {t("عرض الكل", "View all")}
+                </Txt>
+              </Pressable>
+            </Row>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{
+                gap: 14,
+                flexDirection: ar ? "row-reverse" : "row",
+                paddingTop: 12,
+              }}
+            >
+              {marine.data?.data.map((o) => (
+                <View key={o.id} style={{ width: 270 }}>
+                  <ListingCard
+                    o={o}
+                    onPress={() => go({ name: "detail", slug: o.slug })}
+                  />
+                </View>
+              ))}
+            </ScrollView>
+          </View>
+        )}
       <Row between>
-        <Txt bold size={17}>
-          {t("فرص تستحق الاكتشاف", "Worth discovering")}
+        <Txt bold size={20}>
+          {term || category
+            ? t("نتائج البحث", "Search results")
+            : t("أحدث الفرص", "Latest opportunities")}
         </Txt>
         {q.data && (
           <Txt muted size={12}>
@@ -107,8 +323,11 @@ export function Market() {
           </Txt>
         )}
       </Row>
-      <View style={{ height: 12 }} />
-      {q.busy ? (
+      <View style={{ height: 14 }} />
+      {catalog.error != null && (
+        <ErrorBox error={catalog.error} retry={catalog.reload} />
+      )}
+      {q.busy && !q.data ? (
         <Loading />
       ) : q.error ? (
         <ErrorBox error={q.error} retry={q.reload} />
@@ -123,12 +342,26 @@ export function Market() {
           ))}
           {q.data?.data.length === 0 && (
             <Card>
-              <Txt>
+              <Icon name="search-outline" size={35} />
+              <Txt bold size={18}>
+                {t("فرصتك القادمة في الطريق", "Your next opportunity awaits")}
+              </Txt>
+              <Txt muted>
                 {t(
-                  "لا توجد فرص مطابقة حاليًا. جرّب قطاعًا أو كلمة أخرى.",
-                  "No matching opportunities yet. Try another sector or search.",
+                  "لا توجد نتائج مطابقة. غيّر القطاع أو جرّب بحثًا آخر.",
+                  "No matches yet. Try another sector or search.",
                 )}
               </Txt>
+              <Button
+                secondary
+                title={t("مسح البحث", "Clear search")}
+                onPress={() => {
+                  setSearch("");
+                  setTerm("");
+                  setCategory("");
+                  setPage(1);
+                }}
+              />
             </Card>
           )}
           <Row between>
@@ -167,7 +400,7 @@ export function ListingCard({
       {url ? (
         <Image
           source={{ uri: url }}
-          style={{ height: 175, borderRadius: 12, marginBottom: 12 }}
+          style={{ height: 235, borderRadius: 18, marginBottom: 12 }}
           accessibilityLabel={o.title}
         />
       ) : (
@@ -212,6 +445,7 @@ export function ListingCard({
 }
 export function Detail({ slug }: { slug: string }) {
   const { api, ar, t, go, c, user } = useApp();
+  const [selectedImage, setSelectedImage] = useState(0);
   const q = useLoad("detail-" + slug + ar, () =>
     api.request<{ data: Listing }>(
       "/opportunities/" + encodeURIComponent(slug),
@@ -227,13 +461,14 @@ export function Detail({ slug }: { slug: string }) {
     );
   const o = q.data.data;
   const images = o.media.filter((m) => m.type === "image");
-  const first = images[0] && safeMedia(api.origin, images[0].url);
+  const image = images[selectedImage] ?? images[0];
+  const first = image && safeMedia(api.origin, image.url);
   return (
     <Screen>
       {first ? (
         <Image
           source={{ uri: first }}
-          style={{ height: 250, borderRadius: 18, marginBottom: 20 }}
+          style={{ height: 350, borderRadius: 24, marginBottom: 20 }}
           accessibilityLabel={o.title}
         />
       ) : (
@@ -345,15 +580,27 @@ export function Detail({ slug }: { slug: string }) {
           contentContainerStyle={{ gap: 10 }}
           style={{ marginBottom: 14 }}
         >
-          {images.slice(1).map((m, i) => {
+          {images.map((m, i) => {
             const u = safeMedia(api.origin, m.url);
             return u ? (
-              <Image
+              <Pressable
                 key={i}
-                source={{ uri: u }}
-                style={{ width: 130, height: 95, borderRadius: 10 }}
-                accessibilityLabel={o.title}
-              />
+                accessibilityRole="button"
+                accessibilityLabel={t("عرض الصورة ", "Show image ") + (i + 1)}
+                accessibilityState={{ selected: selectedImage === i }}
+                onPress={() => setSelectedImage(i)}
+                style={{
+                  padding: 3,
+                  borderRadius: 14,
+                  borderWidth: 2,
+                  borderColor: selectedImage === i ? c.gold : "transparent",
+                }}
+              >
+                <Image
+                  source={{ uri: u }}
+                  style={{ width: 100, height: 78, borderRadius: 10 }}
+                />
+              </Pressable>
             ) : null;
           })}
         </ScrollView>
