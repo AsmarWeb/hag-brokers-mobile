@@ -15,6 +15,7 @@ import {
   StyleSheet,
   KeyboardAvoidingView,
   Platform,
+  RefreshControl,
 } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { ApiClient, ApiError, errorText } from "./core/api";
@@ -31,7 +32,7 @@ export const palettes = {
     danger: "#F6A7A7",
   },
   light: {
-    bg: "#F3F5F8",
+    bg: "#F5F7F8",
     panel: "#FFFFFF",
     text: "#14253A",
     muted: "#5C6B7B",
@@ -60,6 +61,12 @@ export type Route = {
   slug?: string;
 };
 type Ctx = {
+  appConfig: import("./core/appConfig").AppConfig;
+  reloadAppConfig: () => void;
+  theme: "system" | "light" | "dark";
+  setLanguage: (ar: boolean) => void;
+  setAppearance: (theme: "system" | "light" | "dark") => void;
+  showWelcome: () => void;
   ar: boolean;
   dark: boolean;
   c: typeof palettes.dark;
@@ -273,7 +280,15 @@ export function Badge({ children }: { children: React.ReactNode }) {
     </View>
   );
 }
-export function Screen({ children }: { children: React.ReactNode }) {
+export function Screen({
+  children,
+  refreshing = false,
+  onRefresh,
+}: {
+  children: React.ReactNode;
+  refreshing?: boolean;
+  onRefresh?: () => void;
+}) {
   const { c } = useApp();
   return (
     <KeyboardAvoidingView
@@ -281,6 +296,15 @@ export function Screen({ children }: { children: React.ReactNode }) {
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
       <ScrollView
+        refreshControl={
+          onRefresh ? (
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor={c.gold}
+            />
+          ) : undefined
+        }
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={{
           padding: 20,

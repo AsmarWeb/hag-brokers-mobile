@@ -6,6 +6,7 @@ import React, {
   useState,
 } from "react";
 import {
+  AppState,
   BackHandler,
   Platform,
   Pressable,
@@ -39,6 +40,8 @@ import { Auth, Account } from "./src/screens/Account";
 import { Workspace } from "./src/screens/Workspace";
 import { Publish, Manage } from "./src/screens/Publish";
 import { Offers, OfferDetail, Room, Notices, Rfq } from "./src/screens/Trades";
+import { Welcome } from "./src/screens/Welcome";
+import { defaultConfig, parseAppConfig } from "./src/core/appConfig";
 const rawOrigin =
   process.env.EXPO_PUBLIC_API_ORIGIN || "https://hagbrokers.net";
 export default function App() {
@@ -57,6 +60,10 @@ function Application() {
     [restoreError, setRestoreError] = useState<unknown>(null),
     [restoreVersion, setRestoreVersion] = useState(0),
     [stack, setStack] = useState<Route[]>([{ name: "market" }]);
+  const [appConfig, setAppConfig] = useState(defaultConfig);
+  const [intro, setIntro] = useState(false);
+  const [manualWelcome, setManualWelcome] = useState(false);
+  const [configVersion, reloadConfig] = useState(0);
   const lost = useRef(() => {}),
     sessionVersion = useRef(0);
   const config = useMemo(() => {
@@ -77,6 +84,36 @@ function Application() {
     () => new ApiClient(config.origin, fetch, () => lost.current()),
     [config.origin],
   );
+  useEffect(() => {
+    let active = true;
+    void api
+      .request<{ data: unknown }>("/app-config", { auth: false })
+      .then((res) => {
+        if (active) setAppConfig(parseAppConfig(res.data, api.origin));
+      })
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
+  }, [api, configVersion]);
+  useEffect(() => {
+    let last = Date.now();
+    const sub = AppState.addEventListener("change", (state) => {
+      if (state === "active" && Date.now() - last > 60000) {
+        last = Date.now();
+        reloadConfig((v) => v + 1);
+      }
+    });
+    return () => sub.remove();
+  }, []);
+  function dismissWelcome() {
+    setIntro(false);
+    setManualWelcome(false);
+    if (nativeSecureStorage)
+      void vaultKey(api.origin, "welcome-v1")
+        .then((k) => writeSecret(k, "seen"))
+        .catch(() => {});
+  }
   const persistence = useMemo(
     () =>
       new OrderedSessionStore(async (token) => {
@@ -116,6 +153,8 @@ function Application() {
               setTheme(parsed.theme);
           } catch {}
         }
+        const seen = await readSecret(await vaultKey(api.origin, "welcome-v1"));
+        if (active) setIntro(seen !== "seen");
         const token = await readSecret(await vaultKey(api.origin, "token"));
         if (token && active && generation === sessionVersion.current) {
           api.setToken(token);
@@ -207,6 +246,15 @@ function Application() {
   const t = (a: string, e: string) => (ar ? a : e);
   const route = stack[stack.length - 1];
   const context = {
+    appConfig,
+    reloadAppConfig: () => reloadConfig((v) => v + 1),
+    theme,
+    setLanguage: setAr,
+    setAppearance: setTheme,
+    showWelcome: () => {
+      setManualWelcome(true);
+      setIntro(true);
+    },
     ar,
     dark,
     c,
@@ -285,157 +333,162 @@ function Application() {
     <Context.Provider value={context}>
       <SafeAreaView style={{ flex: 1, backgroundColor: c.bg }}>
         <StatusBar style={dark ? "light" : "dark"} />
-        <View
-          style={{
-            paddingHorizontal: 20,
-            paddingVertical: 13,
-            backgroundColor: c.panel,
-            borderBottomWidth: 1,
-            borderColor: c.line,
-          }}
-        >
-          <Row between>
-            <View style={{ flex: 1 }}>
-              <Text
-                style={{
-                  fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
-                  fontSize: 27,
-                  letterSpacing: 4,
-                  color: c.gold,
-                }}
-              >
-                HAG
-              </Text>
-              <Txt muted size={10}>
-                BROKERS
-              </Txt>
-            </View>
-            <Row>
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel={t("تغيير اللغة", "Change language")}
-                onPress={() => setAr((x) => !x)}
-                style={{
-                  padding: 10,
-                  minHeight: 44,
-                  minWidth: 44,
-                  alignItems: "center",
-                }}
-              >
-                <Txt size={12}>{ar ? "EN" : "عربي"}</Txt>
-              </Pressable>
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel={t("تبديل المظهر", "Toggle appearance")}
-                onPress={() => setTheme(dark ? "light" : "dark")}
-                style={{
-                  padding: 9,
-                  minHeight: 44,
-                  minWidth: 44,
-                  alignItems: "center",
-                }}
-              >
-                <Icon name={dark ? "sunny-outline" : "moon-outline"} />
-              </Pressable>
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel={t("التنبيهات", "Notifications")}
-                onPress={() => go({ name: "notices" })}
-                style={{
-                  padding: 9,
-                  minHeight: 44,
-                  minWidth: 44,
-                  alignItems: "center",
-                }}
-              >
-                <Icon name="notifications-outline" />
-              </Pressable>
-            </Row>
-          </Row>
-          {stack.length > 1 && (
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={t("عودة", "Back")}
-              onPress={back}
-              style={{ paddingTop: 12, minHeight: 40 }}
+        {!(boot || (intro && (appConfig.welcome_enabled || manualWelcome))) && (
+          <>
+            <View
+              style={{
+                paddingHorizontal: 20,
+                paddingVertical: 13,
+                backgroundColor: c.panel,
+                borderBottomWidth: 1,
+                borderColor: c.line,
+              }}
             >
-              <Txt muted size={12}>
-                {ar ? "→ عودة" : "← Back"}
-              </Txt>
-            </Pressable>
-          )}
-        </View>
-        {restoreError != null && !user && (
-          <View style={{ paddingHorizontal: 20 }}>
-            <ErrorBox
-              error={restoreError}
-              retry={() => setRestoreVersion((x) => x + 1)}
-            />
-          </View>
-        )}
-        <View
-          key={
-            route.name +
-            "-" +
-            route.id +
-            "-" +
-            route.slug +
-            "-" +
-            (user?.id ?? "guest")
-          }
-          style={{ flex: 1 }}
-        >
-          {content()}
-        </View>
-        <View
-          style={{
-            flexDirection: ar ? "row-reverse" : "row",
-            borderTopWidth: 1,
-            borderColor: c.line,
-            paddingVertical: 10,
-            backgroundColor: c.panel,
-          }}
-        >
-          {tabs.map((tab) => {
-            const selected =
-              route.name === tab.route ||
-              (tab.route === "offers" &&
-                ["offer", "room", "rfq"].includes(route.name)) ||
-              (tab.route === "workspace" &&
-                ["create", "manage"].includes(route.name));
-            return (
-              <Pressable
-                accessibilityRole="tab"
-                accessibilityState={{ selected }}
-                key={tab.route}
-                onPress={() =>
-                  setStack([
-                    {
-                      name:
-                        !user && ["workspace", "offers"].includes(tab.route)
-                          ? "auth"
-                          : tab.route,
-                    },
-                  ])
-                }
+              <View
                 style={{
-                  flex: 1,
-                  minHeight: 48,
-                  alignItems: "center",
+                  minHeight: 46,
                   justifyContent: "center",
-                  gap: 4,
+                  alignItems: "center",
                 }}
               >
-                <Icon name={tab.icon} color={selected ? c.gold : c.muted} />
-                <Text
-                  style={{ fontSize: 11, color: selected ? c.gold : c.muted }}
+                <View style={{ paddingHorizontal: 56, alignItems: "center" }}>
+                  <Text
+                    numberOfLines={1}
+                    adjustsFontSizeToFit
+                    style={{
+                      fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
+                      fontSize: 25,
+                      fontWeight: "700",
+                      letterSpacing: 1,
+                      color: c.text,
+                    }}
+                  >
+                    {appConfig.app_name}
+                  </Text>
+                  <Text
+                    style={{
+                      fontSize: 8,
+                      letterSpacing: 3,
+                      color: c.gold,
+                      marginTop: 3,
+                    }}
+                  >
+                    TRADE · CONNECT · GROW
+                  </Text>
+                </View>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={t("التنبيهات", "Notifications")}
+                  onPress={() => go({ name: "notices" })}
+                  style={{
+                    position: "absolute",
+                    [ar ? "left" : "right"]: 0,
+                    width: 46,
+                    height: 46,
+                    alignItems: "center",
+                    justifyContent: "center",
+                    borderRadius: 16,
+                    backgroundColor: c.bg,
+                  }}
                 >
-                  {tab.label}
-                </Text>
-              </Pressable>
-            );
-          })}
-        </View>
+                  <Icon name="notifications-outline" />
+                </Pressable>
+              </View>
+              {stack.length > 1 && (
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={t("عودة", "Back")}
+                  onPress={back}
+                  style={{ paddingTop: 12, minHeight: 40 }}
+                >
+                  <Txt muted size={12}>
+                    {ar ? "→ عودة" : "← Back"}
+                  </Txt>
+                </Pressable>
+              )}
+            </View>
+            {restoreError != null && !user && (
+              <View style={{ paddingHorizontal: 20 }}>
+                <ErrorBox
+                  error={restoreError}
+                  retry={() => setRestoreVersion((x) => x + 1)}
+                />
+              </View>
+            )}
+          </>
+        )}
+        {boot || (intro && (appConfig.welcome_enabled || manualWelcome)) ? (
+          <Welcome loading={boot} onContinue={dismissWelcome} />
+        ) : (
+          <>
+            <View
+              key={
+                route.name +
+                "-" +
+                route.id +
+                "-" +
+                route.slug +
+                "-" +
+                (user?.id ?? "guest")
+              }
+              style={{ flex: 1 }}
+            >
+              {content()}
+            </View>
+            <View
+              style={{
+                flexDirection: ar ? "row-reverse" : "row",
+                borderTopWidth: 1,
+                borderColor: c.line,
+                paddingVertical: 10,
+                backgroundColor: c.panel,
+              }}
+            >
+              {tabs.map((tab) => {
+                const selected =
+                  route.name === tab.route ||
+                  (tab.route === "offers" &&
+                    ["offer", "room", "rfq"].includes(route.name)) ||
+                  (tab.route === "workspace" &&
+                    ["create", "manage"].includes(route.name));
+                return (
+                  <Pressable
+                    accessibilityRole="tab"
+                    accessibilityState={{ selected }}
+                    key={tab.route}
+                    onPress={() =>
+                      setStack([
+                        {
+                          name:
+                            !user && ["workspace", "offers"].includes(tab.route)
+                              ? "auth"
+                              : tab.route,
+                        },
+                      ])
+                    }
+                    style={{
+                      flex: 1,
+                      minHeight: 48,
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: 4,
+                    }}
+                  >
+                    <Icon name={tab.icon} color={selected ? c.gold : c.muted} />
+                    <Text
+                      style={{
+                        fontSize: 11,
+                        color: selected ? c.gold : c.muted,
+                      }}
+                    >
+                      {tab.label}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+          </>
+        )}
       </SafeAreaView>
     </Context.Provider>
   );

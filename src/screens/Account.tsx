@@ -16,6 +16,7 @@ import {
 import { nativeSecureStorage, deviceName } from "../core/vault";
 import { ApiError } from "../core/api";
 import type { User } from "../core/types";
+import { Preferences } from "./Welcome";
 import { label } from "../core/labels";
 export function Auth({ register = false }: { register?: boolean }) {
   const { api, t, ar, go, signIn } = useApp();
@@ -283,6 +284,7 @@ export function Account() {
   return (
     <Screen>
       <Title title={t("حسابك في HAG", "Your HAG account")} />
+      <Preferences />
       {!user ? (
         <>
           <Card>

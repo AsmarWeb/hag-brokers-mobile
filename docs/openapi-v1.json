@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "HAG Brokers Mobile & Integration API",
-    "version": "1.2.0",
+    "version": "1.3.0",
     "description": "Authentication, public marketplace, company opportunity operations, RFQ offers, private negotiation messages and scoped company notifications. Native push, standalone media editing, payments and partner credentials are not yet API features. JSON request/response; UTC ISO 8601 timestamps; decimal money strings. Errors follow Laravel message/errors format. 120 requests/min/IP overall; login/register/reset 5/min/IP each, forgot/resend 3/min/IP each. Store Bearer secrets in OS secure storage. Render user content as text. Native bearer authentication only; cookie sessions are insufficient."
   },
   "servers": [
@@ -2730,6 +2730,21 @@
           },
           "429": {
             "description": "Rate limit; respect Retry-After"
+          }
+        }
+      }
+    },
+    "/app-config": {
+      "get": {
+        "summary": "Public bilingual mobile presentation configuration",
+        "description": "Read-only. No authentication. Returns data with version, app_name, welcome/home titles and bodies in ar/en, announcement_ar/en, welcome_enabled, show_marine, categories and same-origin public image URLs (or null). Settings never grant permissions, subscriptions or financial access. Missing/unreachable configuration must use bundled defaults. Refresh on foreground (at most once/minute) or pull to refresh.",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Presentation content from mobile_app_settings; no secrets or internal audit data."
+          },
+          "429": {
+            "description": "Rate limited"
           }
         }
       }
