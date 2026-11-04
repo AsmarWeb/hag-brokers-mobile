@@ -18,15 +18,16 @@ import type {
 } from "../core/types";
 export function Workspace() {
   const { api, user, go, t, ar } = useApp();
+  const eligible = !!user?.email_verified && user.company?.status === "active";
   const leader =
     !!user?.company && ["owner", "manager"].includes(user.company.role);
   const q = useLoad("workspace-" + user?.id + ar, () =>
-    user?.company
+    eligible
       ? api.request<{ data: WorkspaceData }>("/company/workspace")
       : Promise.resolve(null),
   );
   const own = useLoad("own-" + user?.id, () =>
-    leader
+    eligible && leader
       ? api.request<Page<OwnListing>>("/company/opportunities?per_page=20")
       : Promise.resolve(null),
   );
@@ -63,6 +64,29 @@ export function Workspace() {
         <Button
           title={t("استكشف السوق", "Explore marketplace")}
           onPress={() => go({ name: "market" })}
+        />
+      </Screen>
+    );
+  if (!eligible)
+    return (
+      <Screen>
+        <Title title={t("مساحة الشركة", "Company workspace")} />
+        <Card>
+          <Txt>
+            {!user.email_verified
+              ? t(
+                  "وثّق بريدك من أمان الحساب لبدء استخدام وظائف الشركة.",
+                  "Verify your email in Account security to use company features.",
+                )
+              : t(
+                  "مساحة الشركة غير نشطة حاليًا. راجع حالة شركتك مع المنصة.",
+                  "Your workspace is not active. Review your company status with the platform.",
+                )}
+          </Txt>
+        </Card>
+        <Button
+          title={t("أمان الحساب", "Account security")}
+          onPress={() => go({ name: "security" })}
         />
       </Screen>
     );

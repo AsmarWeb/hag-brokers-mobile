@@ -56,13 +56,22 @@ export type Route = {
     | "account"
     | "create"
     | "rfq"
-    | "manage";
+    | "manage"
+    | "language"
+    | "appearance"
+    | "security"
+    | "identity"
+    | "forgot"
+    | "support";
   id?: number;
   slug?: string;
 };
 type Ctx = {
   appConfig: import("./core/appConfig").AppConfig;
   reloadAppConfig: () => void;
+  configStatus: import("./core/configSync").ConfigStatus;
+  unread: number | null;
+  refreshNotices: () => void;
   theme: "system" | "light" | "dark";
   setLanguage: (ar: boolean) => void;
   setAppearance: (theme: "system" | "light" | "dark") => void;
@@ -210,6 +219,7 @@ export function Field({
   multiline = false,
   email = false,
   decimal = false,
+  errorMessage,
 }: {
   title: string;
   value: string;
@@ -218,6 +228,7 @@ export function Field({
   multiline?: boolean;
   email?: boolean;
   decimal?: boolean;
+  errorMessage?: string;
 }) {
   const { c, ar } = useApp();
   return (
@@ -238,7 +249,7 @@ export function Field({
         }
         style={{
           borderWidth: 1,
-          borderColor: c.line,
+          borderColor: errorMessage ? c.danger : c.line,
           borderRadius: 11,
           backgroundColor: c.panel,
           color: c.text,
@@ -249,6 +260,11 @@ export function Field({
           textAlignVertical: "top",
         }}
       />
+      {errorMessage && (
+        <Txt size={12} style={{ color: c.danger, marginTop: 5 }}>
+          {errorMessage}
+        </Txt>
+      )}
     </View>
   );
 }
@@ -320,14 +336,16 @@ export function Screen({
 export function ErrorBox({
   error,
   retry,
+  summary,
 }: {
   error: unknown;
   retry?: () => void;
+  summary?: string;
 }) {
   const { ar, t, c } = useApp();
   return (
     <Card>
-      <Txt style={{ color: c.danger }}>{errorText(error, ar)}</Txt>
+      <Txt style={{ color: c.danger }}>{summary ?? errorText(error, ar)}</Txt>
       {error instanceof ApiError &&
         error.status === 422 &&
         Object.entries(error.fields)
