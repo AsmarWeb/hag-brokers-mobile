@@ -2969,6 +2969,191 @@
           }
         ]
       }
+    },
+    "/auth/account": {
+      "get": {
+        "summary": "Read current account identity and revision",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Private data envelope"
+          },
+          "401": {
+            "description": "Bearer required"
+          },
+          "403": {
+            "description": "Wrong scope or platform administrator"
+          }
+        }
+      },
+      "put": {
+        "summary": "Edit current name and sign-in email",
+        "description": "Current password required for email changes. Clears email verification, preserves current API token, revokes other API tokens, requests a fresh verification email. Customer/company/finance/contact snapshots are unchanged. Does not invalidate existing web sessions. 409 requires reloading; no silent stale overwrite. verification_requested indicates a request, not confirmed delivery.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["name", "email", "revision"],
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "maxLength": 160
+                  },
+                  "email": {
+                    "type": "string",
+                    "format": "email",
+                    "maxLength": 255
+                  },
+                  "revision": {
+                    "type": "string",
+                    "minLength": 64,
+                    "maxLength": 64
+                  },
+                  "current_password": {
+                    "type": ["string", "null"],
+                    "maxLength": 128
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Private data envelope"
+          },
+          "401": {
+            "description": "Bearer required"
+          },
+          "403": {
+            "description": "Wrong scope or platform administrator"
+          },
+          "409": {
+            "description": "Stale revision"
+          },
+          "422": {
+            "description": "Invalid or duplicate email, incorrect password or prohibited fields"
+          },
+          "429": {
+            "description": "Rate limited"
+          }
+        }
+      }
+    },
+    "/auth/deletion-request": {
+      "get": {
+        "summary": "Read only the current user deletion request",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Private data envelope"
+          },
+          "401": {
+            "description": "Bearer required"
+          },
+          "403": {
+            "description": "Wrong scope or platform administrator"
+          }
+        }
+      },
+      "post": {
+        "summary": "Submit password-confirmed account deletion review request",
+        "description": "Returns status pending or reviewing and requested_at. Idempotent per user. A request does not delete or disable the account, revoke tokens or remove business records. Manual team fulfillment is separate; no automatic completion, deadline or retention period is claimed. Pending request visible in admin account center.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["current_password", "confirm"],
+                "properties": {
+                  "current_password": {
+                    "type": "string",
+                    "maxLength": 128
+                  },
+                  "confirm": {
+                    "type": "boolean",
+                    "const": true
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Private data envelope"
+          },
+          "401": {
+            "description": "Bearer required"
+          },
+          "403": {
+            "description": "Wrong scope or platform administrator"
+          },
+          "201": {
+            "description": "First request recorded"
+          },
+          "422": {
+            "description": "Incorrect password or missing confirmation"
+          },
+          "429": {
+            "description": "Rate limited"
+          }
+        }
+      }
+    },
+    "/legal/{slug}": {
+      "get": {
+        "summary": "Read a published legal document without authentication",
+        "description": "Plain text, selected language; drafts are never returned. No documents are published by migration. Published versions, titles and bodies are controlled by verified administrators.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "slug",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": ["privacy", "terms"]
+            }
+          },
+          {
+            "in": "query",
+            "name": "lang",
+            "schema": {
+              "type": "string",
+              "enum": ["ar", "en"]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "data contains slug,title,body,version,updated_at"
+          },
+          "404": {
+            "description": "Document is not published"
+          }
+        }
+      }
     }
   },
   "components": {
