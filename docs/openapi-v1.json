@@ -2805,6 +2805,170 @@
           }
         }
       }
+    },
+    "/freight/ports": {
+      "get": {
+        "summary": "Search active shipping ports, 30 per page",
+        "description": "Verified company owner/manager with an active mapped customer. Existing legacy customer accounts remain supported. No prices, margins, customer IDs or internal offers are returned. Private no-store responses.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Explicit safe data envelope"
+          },
+          "401": {
+            "description": "Bearer authentication required"
+          },
+          "403": {
+            "description": "Account is not eligible"
+          },
+          "422": {
+            "description": "Invalid request"
+          }
+        },
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "maxLength": 100
+            }
+          }
+        ]
+      }
+    },
+    "/freight/quotations": {
+      "get": {
+        "summary": "List company freight requests, default 20 and maximum 50 per page",
+        "description": "Verified company owner/manager with an active mapped customer. Existing legacy customer accounts remain supported. No prices, margins, customer IDs or internal offers are returned. Private no-store responses.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Explicit safe data envelope"
+          },
+          "401": {
+            "description": "Bearer authentication required"
+          },
+          "403": {
+            "description": "Account is not eligible"
+          },
+          "422": {
+            "description": "Invalid request"
+          }
+        },
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          {
+            "name": "per_page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50
+            }
+          }
+        ]
+      },
+      "post": {
+        "summary": "Submit sea freight requirements for HAG review",
+        "description": "Not a booking or confirmed price. Server assigns the customer and reference. Same company/key and normalized payload return the existing request; changed payload with the same key returns 422. Client identity, price, status and assignment fields are prohibited. Requires additive freight_request_keys migration. No invoice, deal or payment is created.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FreightQuotationInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created: data plus meta.created=true"
+          },
+          "200": {
+            "description": "Identical retry: meta.created=false"
+          },
+          "401": {
+            "description": "Bearer required"
+          },
+          "403": {
+            "description": "Not eligible"
+          },
+          "422": {
+            "description": "Field validation or changed retry"
+          },
+          "429": {
+            "description": "Rate limited"
+          }
+        }
+      }
+    },
+    "/freight/quotations/{quotationId}": {
+      "get": {
+        "summary": "Read an owned company freight request",
+        "description": "Verified company owner/manager with an active mapped customer. Existing legacy customer accounts remain supported. No prices, margins, customer IDs or internal offers are returned. Private no-store responses.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Explicit safe data envelope"
+          },
+          "401": {
+            "description": "Bearer authentication required"
+          },
+          "403": {
+            "description": "Account is not eligible"
+          },
+          "422": {
+            "description": "Invalid request"
+          },
+          "404": {
+            "description": "Not found or belongs to another customer"
+          }
+        },
+        "parameters": [
+          {
+            "name": "quotationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ]
+      }
     }
   },
   "components": {
@@ -4089,6 +4253,52 @@
           "read_at": {
             "type": ["string", "null"],
             "format": "date-time"
+          }
+        }
+      },
+      "FreightQuotationInput": {
+        "type": "object",
+        "required": [
+          "request_key",
+          "origin_port_id",
+          "destination_port_id",
+          "cargo_type",
+          "container_type",
+          "quantity"
+        ],
+        "properties": {
+          "request_key": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "origin_port_id": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "destination_port_id": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "cargo_type": {
+            "type": "string",
+            "maxLength": 255
+          },
+          "container_type": {
+            "type": "string",
+            "maxLength": 255
+          },
+          "quantity": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 10000
+          },
+          "weight": {
+            "type": ["number", "string", "null"],
+            "description": "Total cargo weight in kilograms, maximum 9999999999.99"
+          },
+          "preferred_date": {
+            "type": ["string", "null"],
+            "format": "date"
           }
         }
       }

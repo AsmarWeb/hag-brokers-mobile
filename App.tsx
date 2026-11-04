@@ -34,6 +34,11 @@ import {
   Txt,
   type Route,
 } from "./src/ui";
+import {
+  FreightList,
+  FreightCreate,
+  FreightDetail,
+} from "./src/screens/Freight";
 import { Market, Detail } from "./src/screens/Market";
 import {
   Auth,
@@ -290,6 +295,12 @@ function Application() {
   function content() {
     if (boot) return <Loading />;
     switch (route.name) {
+      case "freight":
+        return <FreightList />;
+      case "freight-create":
+        return <FreightCreate />;
+      case "freight-detail":
+        return <FreightDetail id={route.id!} />;
       case "market":
         return <Market />;
       case "detail":
