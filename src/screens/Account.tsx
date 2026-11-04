@@ -332,6 +332,32 @@ export function Account() {
           </MenuGroup>
         </>
       )}
+      {user ? (
+        <MenuGroup>
+          <MenuRow
+            danger
+            icon="person-remove-outline"
+            title={t("طلب حذف الحساب", "Request account deletion")}
+            sub={t(
+              "تقديم الطلب ومتابعة المراجعة",
+              "Submit a request and follow its review",
+            )}
+            onPress={() => go({ name: "deletion-request" })}
+          />
+        </MenuGroup>
+      ) : null}
+      <MenuGroup>
+        <MenuRow
+          icon="document-text-outline"
+          title={t("سياسة الخصوصية", "Privacy policy")}
+          onPress={() => go({ name: "privacy" })}
+        />
+        <MenuRow
+          icon="reader-outline"
+          title={t("شروط الاستخدام", "Terms of use")}
+          onPress={() => go({ name: "terms" })}
+        />
+      </MenuGroup>
       <GroupLabel title={t("تفضيلات التطبيق", "App preferences")} />
       <MenuGroup>
         <MenuRow
@@ -831,46 +857,6 @@ export function ForgotPassword() {
         title={t("إرسال التعليمات", "Send instructions")}
         onPress={() => void send()}
       />
-    </Screen>
-  );
-}
-export function IdentityDetails() {
-  const { user, t, ar } = useApp();
-  if (!user) return null;
-  return (
-    <Screen>
-      <Title title={t("بيانات حسابك", "Account details")} />
-      <Card>
-        <Txt muted size={12}>
-          {t("الاسم", "Name")}
-        </Txt>
-        <Txt bold size={19}>
-          {user.name}
-        </Txt>
-        <Txt muted size={12} style={{ marginTop: 15 }}>
-          {t("البريد الإلكتروني", "Email")}
-        </Txt>
-        <Txt>{user.email}</Txt>
-        <Txt muted size={12} style={{ marginTop: 15 }}>
-          {t("نوع الحساب", "Account type")}
-        </Txt>
-        <Txt>
-          {user.account_type === "company"
-            ? t("شركة", "Company")
-            : t("فرد", "Individual")}
-        </Txt>
-        {user.company && (
-          <Txt muted>
-            {label(user.company.role, ar)} · {label(user.company.status, ar)}
-          </Txt>
-        )}
-      </Card>
-      <Txt muted>
-        {t(
-          "حالة الحساب مرتبطة بسجلات المنصة. استخدم أمان الحساب لتوثيق البريد وإدارة الأجهزة.",
-          "Your account reflects platform records. Use Account security to verify email and manage devices.",
-        )}
-      </Txt>
     </Screen>
   );
 }

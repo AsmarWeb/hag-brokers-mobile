@@ -1,3 +1,8 @@
+import {
+  IdentityEditor,
+  DeleteAccountRequest,
+  LegalPage,
+} from "./src/screens/AccountCompletion";
 import React, {
   useCallback,
   useEffect,
@@ -46,7 +51,6 @@ import {
   LanguageSettings,
   AppearanceSettings,
   SecuritySettings,
-  IdentityDetails,
   ForgotPassword,
   Support,
 } from "./src/screens/Account";
@@ -317,8 +321,14 @@ function Application() {
         return <AppearanceSettings />;
       case "security":
         return user ? <SecuritySettings /> : <Auth />;
+      case "privacy":
+        return <LegalPage slug="privacy" />;
+      case "terms":
+        return <LegalPage slug="terms" />;
+      case "deletion-request":
+        return user ? <DeleteAccountRequest /> : <Auth />;
       case "identity":
-        return user ? <IdentityDetails /> : <Auth />;
+        return user ? <IdentityEditor /> : <Auth />;
       case "forgot":
         return <ForgotPassword />;
       case "support":
