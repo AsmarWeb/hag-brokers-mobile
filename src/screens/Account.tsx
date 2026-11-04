@@ -335,6 +335,19 @@ export function Account() {
       {user ? (
         <MenuGroup>
           <MenuRow
+            icon="notifications-outline"
+            title={t("إشعارات الهاتف", "Phone notifications")}
+            sub={t(
+              "العروض والرسائل أثناء إغلاق التطبيق",
+              "Offers and messages while the app is closed",
+            )}
+            onPress={() => go({ name: "push-settings" })}
+          />
+        </MenuGroup>
+      ) : null}
+      {user ? (
+        <MenuGroup>
+          <MenuRow
             danger
             icon="person-remove-outline"
             title={t("طلب حذف الحساب", "Request account deletion")}
@@ -1100,8 +1113,8 @@ export function Support() {
       <Card>
         <Txt>
           {t(
-            "تنبيهات التطبيق تتحدث أثناء الاستخدام. تنبيهات النظام عند إغلاق التطبيق لم تُفعّل بعد.",
-            "In-app notifications update while using the app. System push notifications while the app is closed are not enabled yet.",
+            "تنبيهات التطبيق تتحدث أثناء الاستخدام. يمكنك إدارة إشعارات الهاتف من حسابي، إذا كانت النسخة والخادم يدعمانها.",
+            "In-app notifications update while using the app. Manage phone push in Account when supported by your build and server.",
           )}
         </Txt>
       </Card>

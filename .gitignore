@@ -54,3 +54,10 @@ dist-verified/
 backups/
 
 dist-account-verified/
+
+# Local FCM configuration and private credentials
+google-services.json
+*service-account*.json
+*.keystore
+*.jks
+*firebase-adminsdk*.json

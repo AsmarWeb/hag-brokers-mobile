@@ -44,6 +44,7 @@ export const palettes = {
 };
 export type Route = {
   name:
+    | "push-settings"
     | "deletion-request"
     | "privacy"
     | "terms"

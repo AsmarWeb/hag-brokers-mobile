@@ -36,7 +36,14 @@
           "microphonePermission": false
         }
       ],
-      "expo-document-picker"
+      "expo-document-picker",
+      [
+        "expo-notifications",
+        {
+          "color": "#D9B879",
+          "defaultChannel": "business-updates"
+        }
+      ]
     ]
   }
 }

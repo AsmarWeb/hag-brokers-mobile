@@ -12,10 +12,18 @@
       "distribution": "internal",
       "android": {
         "buildType": "apk"
+      },
+      "env": {
+        "EXPO_PUBLIC_API_ORIGIN": "https://hagbrokers.net",
+        "EXPO_PUBLIC_ALLOW_LOCAL_HTTP": "0"
       }
     },
     "production": {
-      "autoIncrement": true
+      "autoIncrement": true,
+      "env": {
+        "EXPO_PUBLIC_API_ORIGIN": "https://hagbrokers.net",
+        "EXPO_PUBLIC_ALLOW_LOCAL_HTTP": "0"
+      }
     }
   },
   "submit": {
