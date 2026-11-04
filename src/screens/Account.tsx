@@ -286,6 +286,17 @@ export function Account() {
       )}
       {user && (
         <>
+          <MenuGroup>
+            <MenuRow
+              icon="boat-outline"
+              title={t("طلبات الشحن البحري", "Sea freight requests")}
+              sub={t(
+                "اطلب عرض سعر وتابع طلبات شركتك",
+                "Request a quote and track company requests",
+              )}
+              onPress={() => go({ name: "freight" })}
+            />
+          </MenuGroup>
           <GroupLabel title={t("حسابك وأمانك", "Your account & security")} />
           <MenuGroup>
             <MenuRow

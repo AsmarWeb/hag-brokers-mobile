@@ -44,6 +44,9 @@ export const palettes = {
 };
 export type Route = {
   name:
+    | "freight"
+    | "freight-create"
+    | "freight-detail"
     | "market"
     | "detail"
     | "auth"
