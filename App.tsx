@@ -6,7 +6,6 @@ import React, {
   useState,
 } from "react";
 import {
-  AppState,
   BackHandler,
   Platform,
   Pressable,
@@ -36,12 +35,22 @@ import {
   type Route,
 } from "./src/ui";
 import { Market, Detail } from "./src/screens/Market";
-import { Auth, Account } from "./src/screens/Account";
+import {
+  Auth,
+  Account,
+  LanguageSettings,
+  AppearanceSettings,
+  SecuritySettings,
+  IdentityDetails,
+  ForgotPassword,
+  Support,
+} from "./src/screens/Account";
 import { Workspace } from "./src/screens/Workspace";
 import { Publish, Manage } from "./src/screens/Publish";
 import { Offers, OfferDetail, Room, Notices, Rfq } from "./src/screens/Trades";
+import { useCompanyNotices } from "./src/hooks/useCompanyNotices";
 import { Welcome } from "./src/screens/Welcome";
-import { defaultConfig, parseAppConfig } from "./src/core/appConfig";
+import { useRemoteAppConfig } from "./src/hooks/useRemoteAppConfig";
 const rawOrigin =
   process.env.EXPO_PUBLIC_API_ORIGIN || "https://hagbrokers.net";
 export default function App() {
@@ -60,10 +69,8 @@ function Application() {
     [restoreError, setRestoreError] = useState<unknown>(null),
     [restoreVersion, setRestoreVersion] = useState(0),
     [stack, setStack] = useState<Route[]>([{ name: "market" }]);
-  const [appConfig, setAppConfig] = useState(defaultConfig);
   const [intro, setIntro] = useState(false);
   const [manualWelcome, setManualWelcome] = useState(false);
-  const [configVersion, reloadConfig] = useState(0);
   const lost = useRef(() => {}),
     sessionVersion = useRef(0);
   const config = useMemo(() => {
@@ -84,28 +91,11 @@ function Application() {
     () => new ApiClient(config.origin, fetch, () => lost.current()),
     [config.origin],
   );
-  useEffect(() => {
-    let active = true;
-    void api
-      .request<{ data: unknown }>("/app-config", { auth: false })
-      .then((res) => {
-        if (active) setAppConfig(parseAppConfig(res.data, api.origin));
-      })
-      .catch(() => {});
-    return () => {
-      active = false;
-    };
-  }, [api, configVersion]);
-  useEffect(() => {
-    let last = Date.now();
-    const sub = AppState.addEventListener("change", (state) => {
-      if (state === "active" && Date.now() - last > 60000) {
-        last = Date.now();
-        reloadConfig((v) => v + 1);
-      }
-    });
-    return () => sub.remove();
-  }, []);
+  const {
+    config: appConfig,
+    status: configStatus,
+    refresh: reloadAppConfig,
+  } = useRemoteAppConfig(api);
   function dismissWelcome() {
     setIntro(false);
     setManualWelcome(false);
@@ -189,6 +179,7 @@ function Application() {
         )
         .catch(() => {});
   }, [ar, theme, api, boot]);
+  const notices = useCompanyNotices(api, user, ar, 1, 1);
   const go = useCallback(
     (r: Route) => {
       const gated = ![
@@ -197,6 +188,10 @@ function Application() {
         "auth",
         "register",
         "account",
+        "language",
+        "appearance",
+        "forgot",
+        "support",
       ].includes(r.name);
       setStack((old) => [...old, !user && gated ? { name: "auth" } : r]);
     },
@@ -223,7 +218,7 @@ function Application() {
     api.setToken(token);
     setUser(identity);
     setRestoreError(null);
-    setStack([{ name: identity.company ? "workspace" : "market" }]);
+    setStack([{ name: "account" }]);
   }
   async function logout() {
     try {
@@ -246,8 +241,11 @@ function Application() {
   const t = (a: string, e: string) => (ar ? a : e);
   const route = stack[stack.length - 1];
   const context = {
+    unread: notices.data?.meta.unread ?? null,
+    refreshNotices: notices.reload,
     appConfig,
-    reloadAppConfig: () => reloadConfig((v) => v + 1),
+    reloadAppConfig,
+    configStatus,
     theme,
     setLanguage: setAr,
     setAppearance: setTheme,
@@ -302,6 +300,18 @@ function Application() {
         return <Auth register />;
       case "account":
         return <Account />;
+      case "language":
+        return <LanguageSettings />;
+      case "appearance":
+        return <AppearanceSettings />;
+      case "security":
+        return user ? <SecuritySettings /> : <Auth />;
+      case "identity":
+        return user ? <IdentityDetails /> : <Auth />;
+      case "forgot":
+        return <ForgotPassword />;
+      case "support":
+        return <Support />;
       case "workspace":
         return <Workspace />;
       case "create":
@@ -392,6 +402,37 @@ function Application() {
                   }}
                 >
                   <Icon name="notifications-outline" />
+                  {(notices.data?.meta.unread ?? 0) > 0 && (
+                    <View
+                      accessibilityLabel={t(
+                        "تنبيهات غير مقروءة",
+                        "Unread notifications",
+                      )}
+                      style={{
+                        position: "absolute",
+                        top: 0,
+                        right: 0,
+                        minWidth: 19,
+                        height: 19,
+                        paddingHorizontal: 4,
+                        borderRadius: 10,
+                        backgroundColor: "#BA493A",
+                        alignItems: "center",
+                        justifyContent: "center",
+                      }}
+                    >
+                      <Text
+                        style={{
+                          color: "white",
+                          fontSize: 10,
+                          fontWeight: "700",
+                        }}
+                      >
+                        {Math.min(notices.data!.meta.unread!, 99)}
+                        {notices.data!.meta.unread! > 99 ? "+" : ""}
+                      </Text>
+                    </View>
+                  )}
                 </Pressable>
               </View>
               {stack.length > 1 && (
@@ -440,6 +481,9 @@ function Application() {
                 flexDirection: ar ? "row-reverse" : "row",
                 borderTopWidth: 1,
                 borderColor: c.line,
+                marginHorizontal: 12,
+                borderRadius: 24,
+                marginBottom: 8,
                 paddingVertical: 10,
                 backgroundColor: c.panel,
               }}
@@ -447,6 +491,17 @@ function Application() {
               {tabs.map((tab) => {
                 const selected =
                   route.name === tab.route ||
+                  (tab.route === "account" &&
+                    [
+                      "language",
+                      "appearance",
+                      "security",
+                      "identity",
+                      "forgot",
+                      "support",
+                      "auth",
+                      "register",
+                    ].includes(route.name)) ||
                   (tab.route === "offers" &&
                     ["offer", "room", "rfq"].includes(route.name)) ||
                   (tab.route === "workspace" &&

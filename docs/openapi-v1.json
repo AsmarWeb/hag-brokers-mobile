@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "HAG Brokers Mobile & Integration API",
-    "version": "1.3.0",
+    "version": "1.4.0",
     "description": "Authentication, public marketplace, company opportunity operations, RFQ offers, private negotiation messages and scoped company notifications. Native push, standalone media editing, payments and partner credentials are not yet API features. JSON request/response; UTC ISO 8601 timestamps; decimal money strings. Errors follow Laravel message/errors format. 120 requests/min/IP overall; login/register/reset 5/min/IP each, forgot/resend 3/min/IP each. Store Bearer secrets in OS secure storage. Render user content as text. Native bearer authentication only; cookie sessions are insufficient."
   },
   "servers": [
@@ -203,7 +203,7 @@
             }
           }
         },
-        "description": "30-day token. Replaces token with same device_name, retains up to 20 mobile devices. Platform admins cannot use this API.",
+        "description": "30-day token. Replaces token with same device_name, retains up to 20 mobile devices. Platform admins cannot use this API. Correct platform administrator credentials receive 403 with error_code AUTH_ADMIN_WEB_ONLY; use the web dashboard. Wrong credentials never reveal account roles.",
         "parameters": [
           {
             "name": "lang",
@@ -2745,6 +2745,63 @@
           },
           "429": {
             "description": "Rate limited"
+          }
+        }
+      }
+    },
+    "/auth/password": {
+      "put": {
+        "summary": "Change authenticated account password",
+        "description": "Requires mobile:v1 bearer token and current password. New password 12-128 characters, confirmed and different. Keeps this token and revokes other API tokens. Does not grant company or admin access. Rate limit: 5/minute/IP.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "current_password",
+                  "password",
+                  "password_confirmation"
+                ],
+                "properties": {
+                  "current_password": {
+                    "type": "string",
+                    "format": "password"
+                  },
+                  "password": {
+                    "type": "string",
+                    "format": "password"
+                  },
+                  "password_confirmation": {
+                    "type": "string",
+                    "format": "password"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Password changed; other API sessions revoked."
+          },
+          "401": {
+            "description": "Authentication required."
+          },
+          "403": {
+            "description": "Incorrect token ability or platform admin."
+          },
+          "422": {
+            "description": "Invalid current password, weak or mismatched new password."
+          },
+          "429": {
+            "description": "Too many requests."
           }
         }
       }

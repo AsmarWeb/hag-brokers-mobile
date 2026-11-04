@@ -21,17 +21,49 @@ import {
   useApp,
   useLoad,
 } from "../ui";
+import { isCompanyLeader, noticeTarget } from "../core/account";
+import { useCompanyNotices } from "../hooks/useCompanyNotices";
 import { addFields, Chips } from "./Publish";
 export function Offers() {
   const { api, t, ar, user, go } = useApp();
   const [page, setPage] = useState(1),
     [direction, setDirection] = useState("received");
-  const q = useLoad("offers-" + user?.id + page + direction, () =>
-    api.request<Page<Offer>>(
-      "/company/trade-offers?" +
-        new URLSearchParams({ page: String(page), direction, per_page: "15" }),
-    ),
+  const eligible = isCompanyLeader(user);
+  const q = useLoad(
+    "offers-" + user?.id + page + direction + eligible + ar,
+    () =>
+      eligible
+        ? api.request<Page<Offer>>(
+            "/company/trade-offers?" +
+              new URLSearchParams({
+                page: String(page),
+                direction,
+                per_page: "15",
+              }),
+          )
+        : Promise.resolve({
+            data: [] as Offer[],
+            meta: { current_page: 1, last_page: 1, per_page: 15, total: 0 },
+          }),
   );
+  if (!eligible)
+    return (
+      <Screen>
+        <Title title={t("العروض والمفاوضات", "Offers & negotiations")} />
+        <Card>
+          <Txt>
+            {t(
+              "تحتاج إلى حساب مالك شركة أو مديرها، وبريد موثّق ومساحة نشطة لاستخدام العروض.",
+              "Offers require a company owner or manager with verified email and an active workspace.",
+            )}
+          </Txt>
+        </Card>
+        <Button
+          title={t("حسابي", "My account")}
+          onPress={() => go({ name: "account" })}
+        />
+      </Screen>
+    );
   return (
     <Screen>
       <Title title={t("عروض شركتك", "Your company offers")} />
@@ -698,39 +730,72 @@ export function Room({ id }: { id: number }) {
   );
 }
 export function Notices() {
-  const { api, user, t, go, ar } = useApp();
+  const { api, user, t, go, ar, refreshNotices } = useApp();
   const [page, setPage] = useState(1),
     [error, setError] = useState<unknown>(null),
     [busy, setBusy] = useState(false);
-  const q = useLoad("notices-" + user?.id + page, () =>
-    api.request<Page<Notice>>(
-      "/company/notifications?page=" + page + "&per_page=20",
-    ),
-  );
+  const q = useCompanyNotices(api, user, ar, page);
   async function mark(id: string) {
     setBusy(true);
+    setError(null);
     try {
       await api.request("/company/notifications/" + id + "/read", {
         method: "PATCH",
       });
       q.reload();
+      refreshNotices();
+      return true;
     } catch (e) {
       setError(e);
+      return false;
     } finally {
       setBusy(false);
     }
   }
+  async function open(n: Notice) {
+    const target = noticeTarget(n);
+    if (!target) return;
+    if (!n.read_at && !(await mark(n.id))) return;
+    go(target);
+  }
+  if (!q.enabled)
+    return (
+      <Screen>
+        <Title title={t("التنبيهات", "Notifications")} />
+        <Card>
+          <Txt>
+            {t(
+              "تنبيهات الأعمال متاحة لمالك الشركة ومديرها بعد توثيق البريد وتفعيل مساحة الشركة.",
+              "Business notifications are available to company owners and managers with verified email and an active workspace.",
+            )}
+          </Txt>
+        </Card>
+        <Button
+          title={t("حسابي", "My account")}
+          onPress={() => go({ name: "account" })}
+        />
+      </Screen>
+    );
   return (
-    <Screen>
+    <Screen
+      refreshing={q.busy && !!q.data}
+      onRefresh={() => {
+        q.reload();
+        refreshNotices();
+      }}
+    >
       <Title
-        title={t("تنبيهات الشركة", "Company notifications")}
+        title={t("التنبيهات", "Notifications")}
         sub={
           q.data
             ? t("غير المقروء: ", "Unread: ") + q.data.meta.unread
-            : undefined
+            : t(
+                "تحديثات علاقاتك التجارية",
+                "Updates for your business connections",
+              )
         }
       />
-      {q.busy ? (
+      {q.busy && !q.data ? (
         <Loading />
       ) : q.error ? (
         <ErrorBox error={q.error} retry={q.reload} />
@@ -739,22 +804,24 @@ export function Notices() {
           {q.data?.data.map((n) => (
             <Card key={n.id}>
               <Badge>{n.read_at ? t("مقروء", "Read") : t("جديد", "New")}</Badge>
-              <Txt bold>{n.title}</Txt>
-              <Txt muted size={12}>
+              <Txt bold size={17} style={{ marginTop: 9 }}>
                 {label(n.type, ar)}
               </Txt>
-              {n.offer_id && (
+              <Txt muted size={12}>
+                {n.title}
+              </Txt>
+              {noticeTarget(n) && (
                 <Button
                   secondary
-                  title={t("فتح العرض", "Open offer")}
-                  onPress={() => go({ name: "offer", id: n.offer_id! })}
-                />
-              )}
-              {n.opportunity_id && (
-                <Button
-                  secondary
-                  title={t("فتح الفرصة الخاصة", "Open company opportunity")}
-                  onPress={() => go({ name: "manage", id: n.opportunity_id! })}
+                  disabled={busy}
+                  title={
+                    n.type === "rfq.message"
+                      ? t("فتح المحادثة", "Open conversation")
+                      : n.offer_id
+                        ? t("فتح العرض", "Open offer")
+                        : t("فتح الفرصة", "Open opportunity")
+                  }
+                  onPress={() => void open(n)}
                 />
               )}
               {!n.read_at && (
@@ -769,10 +836,13 @@ export function Notices() {
           ))}
           {q.data?.data.length === 0 && (
             <Card>
-              <Txt>
+              <Txt bold size={19}>
+                {t("أنت على اطلاع", "You are all caught up")}
+              </Txt>
+              <Txt muted>
                 {t(
-                  "لا توجد تنبيهات مؤهلة حاليًا.",
-                  "No eligible notifications yet.",
+                  "ستظهر هنا تحديثات العروض والمفاوضات.",
+                  "Offer and negotiation updates will appear here.",
                 )}
               </Txt>
             </Card>
@@ -781,14 +851,14 @@ export function Notices() {
             <Button
               secondary
               title={t("السابق", "Previous")}
-              onPress={() => setPage((x) => x - 1)}
+              onPress={() => setPage((p) => p - 1)}
             />
           )}
           {q.data && page < q.data.meta.last_page && (
             <Button
               secondary
               title={t("التالي", "Next")}
-              onPress={() => setPage((x) => x + 1)}
+              onPress={() => setPage((p) => p + 1)}
             />
           )}
         </>

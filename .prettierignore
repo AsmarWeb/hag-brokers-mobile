@@ -6,3 +6,5 @@ package-lock.json
 assets
 dist-verified
 backups/
+
+dist-account-verified/

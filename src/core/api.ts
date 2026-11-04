@@ -3,6 +3,7 @@ export class ApiError extends Error {
     public status: number,
     public fields: Record<string, string[]> = {},
     public retryAfter = 0,
+    public code = "",
   ) {
     super(`API ${status}`);
   }
@@ -130,7 +131,8 @@ export class ApiClient {
         return { bytes, contentType } as T;
       }
       const text = await response.text();
-      let data: { errors?: Record<string, string[]> } = {};
+      let data: { errors?: Record<string, string[]>; error_code?: unknown } =
+        {};
       if (!contentType.includes("application/json"))
         throw new ApiError(response.ok ? 502 : response.status);
       try {
@@ -138,11 +140,31 @@ export class ApiClient {
       } catch {
         throw new ApiError(502);
       }
+      if (!data || typeof data !== "object" || Array.isArray(data))
+        throw new ApiError(502);
+      const fields: Record<string, string[]> = {};
+      if (
+        response.status === 422 &&
+        data.errors &&
+        typeof data.errors === "object" &&
+        !Array.isArray(data.errors)
+      ) {
+        for (const [key, value] of Object.entries(data.errors).slice(0, 30)) {
+          if (Array.isArray(value))
+            fields[key] = value
+              .filter((m): m is string => typeof m === "string")
+              .slice(0, 10)
+              .map((m) => m.slice(0, 500));
+        }
+      }
       if (!response.ok)
         throw new ApiError(
           response.status,
-          response.status === 422 ? (data.errors ?? {}) : {},
+          fields,
           Number(response.headers.get("retry-after")) || 0,
+          data.error_code === "AUTH_ADMIN_WEB_ONLY"
+            ? "AUTH_ADMIN_WEB_ONLY"
+            : "",
         );
       if (
         !data ||
@@ -173,6 +195,19 @@ export function mergeMessages<T extends { id: number }>(
   ].sort((a, b) => a.id - b.id);
 }
 export function errorText(error: unknown, ar: boolean): string {
+  if (error instanceof ApiError && error.code === "AUTH_ADMIN_WEB_ONLY")
+    return ar
+      ? "هذا حساب إدارة المنصة. استخدم لوحة الإدارة على الموقع، أو حساب شركة/فرد مستقل للتطبيق."
+      : "This is a platform administrator account. Use the web admin dashboard or a separate company/individual account for the app.";
+  if (
+    error instanceof ApiError &&
+    error.status === 422 &&
+    error.fields.email?.includes("Invalid credentials.")
+  )
+    return ar
+      ? "البريد الإلكتروني أو كلمة المرور غير صحيحة."
+      : "The email or password is incorrect.";
+
   if (error instanceof Error && error.message === "uncertain-mutation")
     return ar
       ? "الطلب السابق غير مؤكد. أعد إرساله دون تغيير أو افحص سجلات الشركة أولًا."

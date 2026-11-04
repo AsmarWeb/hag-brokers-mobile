@@ -5,6 +5,7 @@ import {
   View,
   ScrollView,
   Linking,
+  useWindowDimensions,
   TextInput,
   Text,
 } from "react-native";
@@ -29,6 +30,10 @@ import type { Catalog, Listing, Page } from "../core/types";
 import { label } from "../core/labels";
 const sectorIcons: Record<string, React.ComponentProps<typeof Icon>["name"]> = {
   marine: "boat-outline",
+  sea_freight: "boat-outline",
+  machinery: "construct-outline",
+  healthcare: "medkit-outline",
+  agriculture: "leaf-outline",
   logistics: "cube-outline",
   automotive: "car-outline",
   real_estate: "home-outline",
@@ -41,6 +46,8 @@ const sectorIcons: Record<string, React.ComponentProps<typeof Icon>["name"]> = {
   industrial: "cog-outline",
 };
 export function Market() {
+  const { width, fontScale } = useWindowDimensions();
+  const columns = width >= 370 && fontScale <= 1.3 ? 2 : 1;
   const {
     api,
     ar,
@@ -50,6 +57,7 @@ export function Market() {
     user,
     appConfig: config,
     reloadAppConfig,
+    configStatus,
   } = useApp();
   const [search, setSearch] = useState(""),
     [term, setTerm] = useState(""),
@@ -96,6 +104,21 @@ export function Market() {
   }
   return (
     <Screen refreshing={q.busy && !!q.data} onRefresh={refresh}>
+      {configStatus.error != null && (
+        <Card>
+          <Txt muted size={12}>
+            {t(
+              "تعذر تحديث محتوى الإدارة. يُعرض آخر محتوى متاح.",
+              "Admin content could not refresh. Showing the last available content.",
+            )}
+          </Txt>
+          <Button
+            secondary
+            title={t("فحص اتصال المحتوى", "Check content connection")}
+            onPress={() => go({ name: "support" })}
+          />
+        </Card>
+      )}
       <Row between>
         <View style={{ flex: 1 }}>
           <Txt muted size={12}>
@@ -333,13 +356,26 @@ export function Market() {
         <ErrorBox error={q.error} retry={q.reload} />
       ) : (
         <>
-          {q.data?.data.map((o) => (
-            <ListingCard
-              key={o.id}
-              o={o}
-              onPress={() => go({ name: "detail", slug: o.slug })}
-            />
-          ))}
+          <View
+            style={{
+              flexDirection: ar ? "row-reverse" : "row",
+              flexWrap: "wrap",
+              gap: 12,
+            }}
+          >
+            {q.data?.data.map((o) => (
+              <View
+                key={o.id}
+                style={{ width: columns === 2 ? "48%" : "100%" }}
+              >
+                <ListingCard
+                  compact={columns === 2}
+                  o={o}
+                  onPress={() => go({ name: "detail", slug: o.slug })}
+                />
+              </View>
+            ))}
+          </View>
           {q.data?.data.length === 0 && (
             <Card>
               <Icon name="search-outline" size={35} />
@@ -388,7 +424,9 @@ export function Market() {
 export function ListingCard({
   o,
   onPress,
+  compact = false,
 }: {
+  compact?: boolean;
   o: Listing;
   onPress: () => void;
 }) {
@@ -400,7 +438,11 @@ export function ListingCard({
       {url ? (
         <Image
           source={{ uri: url }}
-          style={{ height: 235, borderRadius: 18, marginBottom: 12 }}
+          style={{
+            height: compact ? 140 : 235,
+            borderRadius: 18,
+            marginBottom: 12,
+          }}
           accessibilityLabel={o.title}
         />
       ) : (
@@ -429,7 +471,12 @@ export function ListingCard({
           </Txt>
         )}
       </Row>
-      <Txt size={18} bold style={{ marginTop: 10 }}>
+      <Txt
+        numberOfLines={compact ? 2 : undefined}
+        size={compact ? 14 : 18}
+        bold
+        style={{ marginTop: 10 }}
+      >
         {o.title}
       </Txt>
       <Txt muted size={12}>

@@ -52,3 +52,5 @@ dist-native/
 credentials.json
 dist-verified/
 backups/
+
+dist-account-verified/
