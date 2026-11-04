@@ -1,3 +1,6 @@
+import { usePushReceiver } from "./src/hooks/usePushReceiver";
+import { PushSettings } from "./src/screens/PushSettings";
+import { clearDisplayedPush } from "./src/core/nativePush";
 import {
   IdentityEditor,
   DeleteAccountRequest,
@@ -230,6 +233,7 @@ function Application() {
     setStack([{ name: "account" }]);
   }
   async function logout() {
+    await clearDisplayedPush();
     try {
       await api.request("/auth/logout", { method: "POST" });
     } catch {}
@@ -296,6 +300,7 @@ function Application() {
       icon: "person-circle-outline" as const,
     },
   ];
+  usePushReceiver(api, user, ar, go, notices.reload);
   function content() {
     if (boot) return <Loading />;
     switch (route.name) {
@@ -321,6 +326,8 @@ function Application() {
         return <AppearanceSettings />;
       case "security":
         return user ? <SecuritySettings /> : <Auth />;
+      case "push-settings":
+        return <PushSettings />;
       case "privacy":
         return <LegalPage slug="privacy" />;
       case "terms":
