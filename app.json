@@ -43,7 +43,8 @@
           "color": "#D9B879",
           "defaultChannel": "business-updates"
         }
-      ]
+      ],
+      "expo-font"
     ],
     "extra": {
       "eas": {
