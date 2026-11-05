@@ -104,21 +104,6 @@ export function Market() {
   }
   return (
     <Screen refreshing={q.busy && !!q.data} onRefresh={refresh}>
-      {configStatus.error != null && (
-        <Card>
-          <Txt muted size={12}>
-            {t(
-              "تعذر تحديث محتوى الإدارة. يُعرض آخر محتوى متاح.",
-              "Admin content could not refresh. Showing the last available content.",
-            )}
-          </Txt>
-          <Button
-            secondary
-            title={t("فحص اتصال المحتوى", "Check content connection")}
-            onPress={() => go({ name: "support" })}
-          />
-        </Card>
-      )}
       <Row between>
         <View style={{ flex: 1 }}>
           <Txt muted size={12}>

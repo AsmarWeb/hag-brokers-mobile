@@ -4,7 +4,7 @@
     "slug": "hag-brokers-mobile",
     "version": "0.1.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/hag-icon.png",
     "userInterfaceStyle": "automatic",
     "scheme": "hagbrokers",
     "ios": {
@@ -17,11 +17,11 @@
     "android": {
       "package": "net.hagbrokers.mobile",
       "adaptiveIcon": {
-        "foregroundImage": "./assets/android-icon-foreground.png",
-        "backgroundColor": "#09131F",
-        "monochromeImage": "./assets/android-icon-monochrome.png"
+        "foregroundImage": "./assets/hag-adaptive-icon.png",
+        "backgroundColor": "#09131F"
       },
-      "softwareKeyboardLayoutMode": "resize"
+      "softwareKeyboardLayoutMode": "resize",
+      "googleServicesFile": "./google-services.json"
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -44,6 +44,12 @@
           "defaultChannel": "business-updates"
         }
       ]
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "a6466f8f-367c-4b00-93aa-b7c8a65be477"
+      }
+    },
+    "owner": "asmarweb"
   }
 }
