@@ -1118,54 +1118,6 @@ export function Support() {
           )}
         </Txt>
       </Card>
-      <Card>
-        <Txt bold>{t("اتصال محتوى التطبيق", "App content connection")}</Txt>
-        <Txt muted size={12}>
-          {t("مصدر المحتوى: ", "Content source: ") + api.origin}
-        </Txt>
-        <Txt muted size={12}>
-          {t("إصدار المحتوى: ", "Content version: ") + appConfig.version}
-        </Txt>
-        <Txt muted size={12}>
-          {t(
-            "لغة العرض: العربية — احفظ حقول العربية في لوحة الإدارة.",
-            "Display language: English — save the English fields in the admin dashboard.",
-          )}
-        </Txt>
-        <Txt muted size={12}>
-          {configStatus.busy
-            ? t("جارٍ تحديث المحتوى…", "Updating content…")
-            : configStatus.error
-              ? t(
-                  "تعذر جلب التحديث. يُعرض آخر محتوى متاح.",
-                  "Could not refresh. Showing the last available content.",
-                )
-              : t(
-                  "تم الاتصال بالمصدر بنجاح.",
-                  "Connected to the content source.",
-                )}
-        </Txt>
-        {configStatus.lastUpdated && (
-          <Txt muted size={11}>
-            {t("آخر مزامنة: ", "Last sync: ") +
-              new Date(configStatus.lastUpdated).toLocaleString(
-                ar ? "ar-AE" : "en-AE",
-              )}
-          </Txt>
-        )}
-        <Button
-          secondary
-          disabled={configStatus.busy}
-          title={t("تحديث المحتوى الآن", "Refresh content now")}
-          onPress={reloadAppConfig}
-        />
-        <Txt muted size={11}>
-          {t(
-            "يجب أن تكون لوحة الإدارة والتطبيق متصلين بالخادم نفسه. تغييرات localhost لا تصل إلى خادم الموقع.",
-            "The app and admin dashboard must use the same server. Localhost changes do not update the live website.",
-          )}
-        </Txt>
-      </Card>
       <Button
         secondary
         title={t("زيارة موقع HAG Brokers", "Visit HAG Brokers")}
