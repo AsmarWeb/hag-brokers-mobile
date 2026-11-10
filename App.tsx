@@ -56,6 +56,7 @@ import {
   SecuritySettings,
   ForgotPassword,
   Support,
+  PhoneVerification,
 } from "./src/screens/Account";
 import { Workspace } from "./src/screens/Workspace";
 import { Publish, Manage } from "./src/screens/Publish";
@@ -199,6 +200,7 @@ function Application() {
         "detail",
         "auth",
         "register",
+        "verify-phone",
         "account",
         "language",
         "appearance",
@@ -318,6 +320,10 @@ function Application() {
         return <Auth />;
       case "register":
         return <Auth register />;
+      case "verify-phone":
+        return (
+          <PhoneVerification email={route.email ?? ""} phone={route.phone} />
+        );
       case "account":
         return <Account />;
       case "language":

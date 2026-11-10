@@ -3,6 +3,9 @@ export type User = {
   name: string;
   email: string;
   email_verified: boolean;
+  phone?: string | null;
+  phone_verified?: boolean;
+  account_verified?: boolean;
   account_type: "individual" | "company";
   company: null | { workspace_id: number; role: string; status: string };
 };

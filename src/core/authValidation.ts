@@ -1,3 +1,5 @@
+import { PHONE_COUNTRIES } from "./phoneCountries";
+
 export type AuthForm = {
   name: string;
   email: string;
@@ -6,6 +8,7 @@ export type AuthForm = {
   company: boolean;
   business: string;
   phone: string;
+  phoneCountryCode: string;
   country: string;
 };
 export type AuthFields = Record<string, string[]>;
@@ -85,6 +88,42 @@ export function validateAuth(
         "The password confirmation does not match.",
       ),
     ];
+  required(
+    "phone",
+    form.phone,
+    say(
+      "أدخل رقم الهاتف المحلي دون مفتاح الدولة.",
+      "Enter your local phone number without the country calling code.",
+    ),
+  );
+
+  const phoneDigits = form.phone.replace(/\D/g, "");
+  if (
+    form.phone.trim() &&
+    (phoneDigits.length < 7 ||
+      phoneDigits.length > 15 ||
+      /^0+$/.test(phoneDigits))
+  ) {
+    errors.phone = [
+      say(
+        "أدخل رقمًا صحيحًا من 7 إلى 15 رقمًا.",
+        "Enter a valid phone number containing 7 to 15 digits.",
+      ),
+    ];
+  }
+
+  if (form.phone.trim().length > 50) {
+    errors.phone = [
+      say("رقم الهاتف طويل جدًا.", "The phone number is too long."),
+    ];
+  }
+
+  if (!PHONE_COUNTRIES.some((item) => item.iso === form.phoneCountryCode)) {
+    errors.phone_country_code = [
+      say("اختر دولة صحيحة لمفتاح الهاتف.", "Choose a valid phone country."),
+    ];
+  }
+
   if (form.company) {
     required(
       "company_name",
@@ -97,18 +136,6 @@ export function validateAuth(
           "اسم الشركة لا يتجاوز 255 حرفًا.",
           "Use no more than 255 characters for the company name.",
         ),
-      ];
-    required(
-      "phone",
-      form.phone,
-      say(
-        "أدخل رقم الهاتف الدولي، مثل +971501234567.",
-        "Enter an international phone number, such as +971501234567.",
-      ),
-    );
-    if (form.phone.trim().length > 50)
-      errors.phone = [
-        say("رقم الهاتف طويل جدًا.", "The phone number is too long."),
       ];
     if (!/^[a-z]{2}$/i.test(form.country.trim()))
       errors.country_code = [

@@ -55,6 +55,7 @@ export type Route = {
     | "detail"
     | "auth"
     | "register"
+    | "verify-phone"
     | "workspace"
     | "offers"
     | "offer"
@@ -72,6 +73,8 @@ export type Route = {
     | "support";
   id?: number;
   slug?: string;
+  email?: string;
+  phone?: string;
 };
 type Ctx = {
   appConfig: import("./core/appConfig").AppConfig;
@@ -226,6 +229,8 @@ export function Field({
   multiline = false,
   email = false,
   decimal = false,
+  numeric = false,
+  maxLength,
   errorMessage,
 }: {
   title: string;
@@ -235,6 +240,8 @@ export function Field({
   multiline?: boolean;
   email?: boolean;
   decimal?: boolean;
+  numeric?: boolean;
+  maxLength?: number;
   errorMessage?: string;
 }) {
   const { c, ar } = useApp();
@@ -249,10 +256,17 @@ export function Field({
         onChangeText={set}
         secureTextEntry={secret}
         multiline={multiline}
+        maxLength={maxLength}
         autoCapitalize={email ? "none" : "sentences"}
         autoCorrect={!email && !secret}
         keyboardType={
-          email ? "email-address" : decimal ? "decimal-pad" : "default"
+          email
+            ? "email-address"
+            : numeric
+              ? "number-pad"
+              : decimal
+                ? "decimal-pad"
+                : "default"
         }
         style={{
           borderWidth: 1,
@@ -263,7 +277,8 @@ export function Field({
           padding: 13,
           fontSize: 16,
           minHeight: multiline ? 110 : 48,
-          textAlign: email || decimal ? "left" : ar ? "right" : "left",
+          textAlign:
+            email || decimal || numeric ? "left" : ar ? "right" : "left",
           textAlignVertical: "top",
         }}
       />

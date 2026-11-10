@@ -140,3 +140,43 @@ test("malformed validation fields cannot crash error rendering", async () => {
     return true;
   });
 });
+
+test("session accepts optional phone verification fields and preserves legacy sessions", () => {
+  const legacy = parseSession({
+    data: { access_token: "1|token", user },
+  });
+  assert.equal(legacy.user.phone, undefined);
+  assert.equal(legacy.user.phone_verified, undefined);
+
+  const verified = parseSession({
+    data: {
+      access_token: "2|token",
+      user: {
+        ...user,
+        phone: "+971501234567",
+        phone_verified: true,
+        account_verified: true,
+      },
+    },
+  });
+
+  assert.equal(verified.user.phone, "+971501234567");
+  assert.equal(verified.user.phone_verified, true);
+  assert.equal(verified.user.account_verified, true);
+});
+
+test("session rejects malformed phone verification fields", () => {
+  for (const invalidUser of [
+    { ...user, phone: 971501234567 },
+    { ...user, phone_verified: "true" },
+    { ...user, account_verified: 1 },
+  ]) {
+    assert.throws(
+      () =>
+        parseSession({
+          data: { access_token: "1|token", user: invalidUser },
+        }),
+      ApiError,
+    );
+  }
+});

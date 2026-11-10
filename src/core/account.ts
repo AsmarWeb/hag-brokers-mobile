@@ -40,6 +40,13 @@ export function parseSession(raw: unknown): {
     typeof user.name !== "string" ||
     typeof user.email !== "string" ||
     typeof user.email_verified !== "boolean" ||
+    (user.phone !== undefined &&
+      user.phone !== null &&
+      typeof user.phone !== "string") ||
+    (user.phone_verified !== undefined &&
+      typeof user.phone_verified !== "boolean") ||
+    (user.account_verified !== undefined &&
+      typeof user.account_verified !== "boolean") ||
     !["company", "individual"].includes(user.account_type) ||
     (user.company !== null &&
       (typeof user.company !== "object" ||
