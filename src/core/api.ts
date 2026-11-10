@@ -172,7 +172,8 @@ export class ApiClient {
         (!("data" in data) &&
           !path.startsWith("/auth/forgot-password") &&
           !path.startsWith("/auth/reset-password") &&
-          !path.startsWith("/auth/verification-email"))
+          !path.startsWith("/auth/verification-email") &&
+          path !== "/auth/phone-verification")
       )
         throw new ApiError(502);
       if (sentToken && sentToken !== this.token) throw new ApiError(401);

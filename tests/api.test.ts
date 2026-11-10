@@ -329,3 +329,79 @@ test("transient restore failures must not delete saved credentials", async () =>
   assert.equal(invalidSession(new ApiError(401)), true);
   assert.equal(invalidSession(new ApiError(403)), true);
 });
+
+test("phone OTP resend accepts generic 202 response without bearer token", async () => {
+  let init!: RequestInit;
+  const api = new ApiClient(origin, (async (_url, options) => {
+    init = options!;
+    return json(
+      { message: "If the account exists, a code has been sent." },
+      202,
+    );
+  }) as typeof fetch);
+
+  api.setToken("must-not-be-sent");
+  const result = await api.request<{ message: string }>(
+    "/auth/phone-verification",
+    {
+      method: "POST",
+      auth: false,
+      body: { email: "owner@example.test" },
+    },
+  );
+
+  assert.match(result.message, /code has been sent/);
+  assert.equal(
+    (init.headers as Record<string, string>).Authorization,
+    undefined,
+  );
+});
+
+test("phone verification accepts the documented successful response", async () => {
+  const api = new ApiClient(origin, (async () =>
+    json({
+      data: {
+        phone_verified: true,
+        email_verified: false,
+        account_verified: false,
+      },
+    })) as typeof fetch);
+
+  const result = await api.request<{
+    data: {
+      phone_verified: boolean;
+      email_verified: boolean;
+      account_verified: boolean;
+    };
+  }>("/auth/verify-phone", {
+    method: "POST",
+    auth: false,
+    body: { email: "owner@example.test", code: "123456" },
+  });
+
+  assert.equal(result.data.phone_verified, true);
+  assert.equal(result.data.email_verified, false);
+  assert.equal(result.data.account_verified, false);
+});
+
+test("message-only response exception is restricted to phone OTP resend", async () => {
+  const api = new ApiClient(origin, (async () =>
+    json({ message: "Accepted" }, 202)) as typeof fetch);
+
+  await assert.rejects(
+    api.request("/auth/verify-phone", {
+      method: "POST",
+      auth: false,
+      body: { email: "owner@example.test", code: "123456" },
+    }),
+    (e: unknown) => e instanceof ApiError && e.status === 502,
+  );
+
+  await assert.rejects(
+    api.request("/auth/phone-verification-extra", {
+      method: "POST",
+      auth: false,
+    }),
+    (e: unknown) => e instanceof ApiError && e.status === 502,
+  );
+});

@@ -16,7 +16,8 @@ const form: AuthForm = {
   confirmation: "A-strong-password12",
   company: true,
   business: "UAE Trade",
-  phone: "+971501234567",
+  phone: "501234567",
+  phoneCountryCode: "AE",
   country: "AE",
 };
 const json = (data: unknown, status = 200) =>
@@ -48,7 +49,7 @@ test("valid company and individual forms match the server minimum requirements",
   assert.deepEqual(validateAuth(form, true, true), {});
   assert.deepEqual(
     validateAuth(
-      { ...form, company: false, business: "", phone: "", country: "" },
+      { ...form, company: false, business: "", country: "" },
       true,
       false,
     ),
@@ -70,6 +71,33 @@ test("valid company and individual forms match the server minimum requirements",
     {},
   );
 });
+test("individual registration requires a valid local phone number and country", () => {
+  assert.ok(
+    validateAuth(
+      { ...form, company: false, business: "", phone: "" },
+      true,
+      false,
+    ).phone,
+  );
+
+  assert.ok(
+    validateAuth(
+      { ...form, company: false, business: "", phone: "123" },
+      true,
+      false,
+    ).phone,
+  );
+
+  assert.deepEqual(
+    validateAuth(
+      { ...form, company: false, business: "", phone: "0501234567" },
+      true,
+      false,
+    ),
+    {},
+  );
+});
+
 test("unicode passwords count characters consistently and server email conflicts are understandable", () => {
   const errors = validateAuth(
     { ...form, password: "🚢".repeat(6), confirmation: "🚢".repeat(6) },

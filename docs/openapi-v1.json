@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "HAG Brokers Mobile & Integration API",
-    "version": "1.4.0",
+    "version": "1.5.0",
     "description": "Authentication, public marketplace, company opportunity operations, RFQ offers, private negotiation messages and scoped company notifications. Native push, standalone media editing, payments and partner credentials are not yet API features. JSON request/response; UTC ISO 8601 timestamps; decimal money strings. Errors follow Laravel message/errors format. 120 requests/min/IP overall; login/register/reset 5/min/IP each, forgot/resend 3/min/IP each. Store Bearer secrets in OS secure storage. Render user content as text. Native bearer authentication only; cookie sessions are insufficient."
   },
   "servers": [
@@ -19,21 +19,6 @@
         "summary": "Register individual or company",
         "security": [],
         "responses": {
-          "201": {
-            "description": "Success",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "data": {
-                      "$ref": "#/components/schemas/Token"
-                    }
-                  }
-                }
-              }
-            }
-          },
           "401": {
             "description": "Bearer token missing or expired"
           },
@@ -55,6 +40,42 @@
           },
           "429": {
             "description": "Rate limit; respect Retry-After"
+          },
+          "202": {
+            "description": "Registration accepted; email and phone verification required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "email": {
+                          "type": "string",
+                          "format": "email"
+                        },
+                        "phone": {
+                          "type": ["string", "null"]
+                        },
+                        "verification_required": {
+                          "type": "boolean"
+                        },
+                        "email_verification_required": {
+                          "type": "boolean"
+                        },
+                        "phone_verification_required": {
+                          "type": "boolean"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
           }
         },
         "requestBody": {
@@ -3296,6 +3317,144 @@
           }
         }
       }
+    },
+    "/auth/phone-verification": {
+      "post": {
+        "summary": "Request phone verification code",
+        "description": "Public endpoint. The response is generic to avoid account enumeration. The server applies rate limits and OTP expiry.",
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "format": "email"
+                  }
+                },
+                "required": ["email"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Generic accepted response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation failed"
+          },
+          "429": {
+            "description": "Rate limit; respect Retry-After"
+          }
+        },
+        "parameters": [
+          {
+            "name": "lang",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": ["ar", "en"]
+            }
+          }
+        ]
+      }
+    },
+    "/auth/verify-phone": {
+      "post": {
+        "summary": "Verify phone using one-time code",
+        "description": "Public endpoint. A successful response confirms phone verification and reports account verification state.",
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "format": "email"
+                  },
+                  "code": {
+                    "type": "string",
+                    "pattern": "^[0-9]{6}$",
+                    "minLength": 6,
+                    "maxLength": 6
+                  }
+                },
+                "required": ["email", "code"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Phone verification result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "phone_verified": {
+                          "type": "boolean"
+                        },
+                        "email_verified": {
+                          "type": "boolean"
+                        },
+                        "account_verified": {
+                          "type": "boolean"
+                        }
+                      },
+                      "required": [
+                        "phone_verified",
+                        "email_verified",
+                        "account_verified"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Invalid or expired code"
+          },
+          "429": {
+            "description": "Rate limit; respect Retry-After"
+          }
+        },
+        "parameters": [
+          {
+            "name": "lang",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": ["ar", "en"]
+            }
+          }
+        ]
+      }
     }
   },
   "components": {
@@ -3341,6 +3500,15 @@
                 "type": "string"
               }
             }
+          },
+          "phone": {
+            "type": ["string", "null"]
+          },
+          "phone_verified": {
+            "type": "boolean"
+          },
+          "account_verified": {
+            "type": "boolean"
           }
         }
       },

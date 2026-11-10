@@ -1,5 +1,14 @@
 import React, { useState } from "react";
-import { Alert, Linking, Pressable, View, Text } from "react-native";
+import {
+  Alert,
+  Linking,
+  Pressable,
+  View,
+  Text,
+  Modal,
+  FlatList,
+  TextInput,
+} from "react-native";
 import {
   Badge,
   Button,
@@ -21,6 +30,7 @@ import { ApiError } from "../core/api";
 import { isCompanyLeader, parseSession } from "../core/account";
 import { validateAuth, authFieldMessage } from "../core/authValidation";
 import { label } from "../core/labels";
+import { PHONE_COUNTRIES, phoneCountryFlag } from "../core/phoneCountries";
 
 function MenuRow({
   title,
@@ -560,10 +570,21 @@ export function Auth({ register = false }: { register?: boolean }) {
     [confirmation, setConfirmation] = useState(""),
     [business, setBusiness] = useState(""),
     [phone, setPhone] = useState(""),
+    [phoneCountryCode, setPhoneCountryCode] = useState("AE"),
+    [phonePickerOpen, setPhonePickerOpen] = useState(false),
+    [phoneCountrySearch, setPhoneCountrySearch] = useState(""),
     [country, setCountry] = useState("AE"),
     [busy, setBusy] = useState(false),
     [error, setError] = useState<unknown>(null),
     [visible, setVisible] = useState(false);
+  const selectedPhoneCountry =
+    PHONE_COUNTRIES.find((item) => item.iso === phoneCountryCode) ??
+    PHONE_COUNTRIES[0];
+  const filteredPhoneCountries = PHONE_COUNTRIES.filter((item) =>
+    `${item.nameEn} ${item.nameAr} ${item.iso} ${item.dialCode}`
+      .toLowerCase()
+      .includes(phoneCountrySearch.trim().toLowerCase()),
+  );
   async function submit() {
     if (busy || !nativeSecureStorage) return;
     const fields = validateAuth(
@@ -575,6 +596,7 @@ export function Auth({ register = false }: { register?: boolean }) {
         company,
         business,
         phone,
+        phoneCountryCode,
         country,
       },
       register,
@@ -596,19 +618,51 @@ export function Auth({ register = false }: { register?: boolean }) {
             password,
             password_confirmation: confirmation,
             device_name: device,
+            phone: phone.trim(),
+            phone_country_code: phoneCountryCode,
             ...(company
               ? {
                   company_name: business.trim(),
-                  phone: phone.trim(),
                   country_code: country.trim().toUpperCase(),
                 }
               : {}),
           }
         : { email: email.trim().toLowerCase(), password, device_name: device };
-      const response = await api.request<unknown>(
-        "/auth/" + (register ? "register" : "login"),
-        { method: "POST", auth: false, body },
-      );
+
+      if (register) {
+        const result = await api.request<{
+          data?: {
+            email?: unknown;
+            phone?: unknown;
+            verification_required?: unknown;
+          };
+        }>("/auth/register", { method: "POST", auth: false, body });
+
+        if (
+          typeof result.data?.email !== "string" ||
+          result.data.verification_required !== true
+        ) {
+          throw new ApiError(502);
+        }
+
+        setPassword("");
+        setConfirmation("");
+        go({
+          name: "verify-phone",
+          email: result.data.email,
+          phone:
+            typeof result.data.phone === "string"
+              ? result.data.phone
+              : undefined,
+        });
+        return;
+      }
+
+      const response = await api.request<unknown>("/auth/login", {
+        method: "POST",
+        auth: false,
+        body,
+      });
       const session = parseSession(response);
       await signIn(session.access_token, session.user);
       setPassword("");
@@ -684,6 +738,202 @@ export function Auth({ register = false }: { register?: boolean }) {
               value={name}
               set={setName}
             />
+            <View style={{ marginVertical: 8 }}>
+              <Txt muted size={12}>
+                {t("رقم الهاتف", "Phone number")}
+              </Txt>
+              <View
+                style={{
+                  flexDirection: ar ? "row-reverse" : "row",
+                  alignItems: "center",
+                  gap: 8,
+                }}
+              >
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={t(
+                    "اختيار مفتاح الدولة",
+                    "Choose country calling code",
+                  )}
+                  onPress={() => {
+                    setPhoneCountrySearch("");
+                    setPhonePickerOpen(true);
+                  }}
+                  style={{
+                    minHeight: 50,
+                    minWidth: 118,
+                    paddingHorizontal: 11,
+                    borderWidth: 1,
+                    borderColor: c.line,
+                    borderRadius: 11,
+                    backgroundColor: c.panel,
+                    alignItems: "center",
+                    justifyContent: "center",
+                    flexDirection: "row",
+                    gap: 7,
+                  }}
+                >
+                  <Text style={{ fontSize: 19 }}>
+                    {phoneCountryFlag(selectedPhoneCountry.iso)}
+                  </Text>
+                  <Txt bold>{selectedPhoneCountry.dialCode}</Txt>
+                  <Icon name="chevron-down" size={15} color={c.muted} />
+                </Pressable>
+                <TextInput
+                  accessibilityLabel={t(
+                    "رقم الهاتف المحلي",
+                    "Local phone number",
+                  )}
+                  value={phone}
+                  onChangeText={setPhone}
+                  keyboardType="phone-pad"
+                  autoComplete="tel-national"
+                  autoCorrect={false}
+                  maxLength={25}
+                  placeholder={t("مثال: 501234567", "e.g. 501234567")}
+                  placeholderTextColor={c.muted}
+                  style={{
+                    flex: 1,
+                    minHeight: 50,
+                    paddingHorizontal: 12,
+                    borderWidth: 1,
+                    borderColor: fieldError("phone") ? c.danger : c.line,
+                    borderRadius: 11,
+                    backgroundColor: c.panel,
+                    color: c.text,
+                    fontSize: 16,
+                    textAlign: "left",
+                  }}
+                />
+              </View>
+              {fieldError("phone") ? (
+                <Txt size={12} style={{ color: c.danger, marginTop: 5 }}>
+                  {fieldError("phone")}
+                </Txt>
+              ) : null}
+              <Txt muted size={11}>
+                {t(
+                  `الدولة: ${selectedPhoneCountry.nameAr} — أدخل الرقم المحلي دون مفتاح الدولة.`,
+                  `Country: ${selectedPhoneCountry.nameEn} — enter the local number without the calling code.`,
+                )}
+              </Txt>
+            </View>
+
+            <Modal
+              visible={phonePickerOpen}
+              transparent
+              animationType="slide"
+              onRequestClose={() => setPhonePickerOpen(false)}
+            >
+              <View
+                style={{
+                  flex: 1,
+                  justifyContent: "center",
+                  padding: 18,
+                  backgroundColor: "rgba(0,0,0,0.55)",
+                }}
+              >
+                <View
+                  style={{
+                    maxHeight: "82%",
+                    borderRadius: 20,
+                    padding: 15,
+                    backgroundColor: c.panel,
+                    borderWidth: 1,
+                    borderColor: c.line,
+                  }}
+                >
+                  <View
+                    style={{
+                      flexDirection: ar ? "row-reverse" : "row",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      marginBottom: 12,
+                    }}
+                  >
+                    <Txt bold size={17}>
+                      {t(
+                        "اختر الدولة ومفتاح الاتصال",
+                        "Choose country and calling code",
+                      )}
+                    </Txt>
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel={t("إغلاق", "Close")}
+                      onPress={() => setPhonePickerOpen(false)}
+                      style={{ padding: 7 }}
+                    >
+                      <Icon name="close" color={c.text} size={21} />
+                    </Pressable>
+                  </View>
+                  <TextInput
+                    accessibilityLabel={t("البحث عن دولة", "Search countries")}
+                    value={phoneCountrySearch}
+                    onChangeText={setPhoneCountrySearch}
+                    placeholder={t(
+                      "ابحث بالعربية أو الإنجليزية أو المفتاح",
+                      "Search name or calling code",
+                    )}
+                    placeholderTextColor={c.muted}
+                    autoCorrect={false}
+                    style={{
+                      minHeight: 48,
+                      borderWidth: 1,
+                      borderColor: c.line,
+                      borderRadius: 11,
+                      paddingHorizontal: 12,
+                      color: c.text,
+                      textAlign: ar ? "right" : "left",
+                      marginBottom: 10,
+                    }}
+                  />
+                  <FlatList
+                    data={filteredPhoneCountries}
+                    keyExtractor={(item) => item.iso}
+                    keyboardShouldPersistTaps="handled"
+                    initialNumToRender={12}
+                    renderItem={({ item }) => (
+                      <Pressable
+                        accessibilityRole="button"
+                        onPress={() => {
+                          setPhoneCountryCode(item.iso);
+                          setPhonePickerOpen(false);
+                          setPhoneCountrySearch("");
+                        }}
+                        style={{
+                          minHeight: 54,
+                          paddingHorizontal: 8,
+                          borderBottomWidth: 1,
+                          borderBottomColor: c.line,
+                          flexDirection: ar ? "row-reverse" : "row",
+                          alignItems: "center",
+                          gap: 10,
+                        }}
+                      >
+                        <Text style={{ fontSize: 21 }}>
+                          {phoneCountryFlag(item.iso)}
+                        </Text>
+                        <View style={{ flex: 1 }}>
+                          <Txt bold>{ar ? item.nameAr : item.nameEn}</Txt>
+                          <Txt muted size={11}>
+                            {item.iso}
+                          </Txt>
+                        </View>
+                        <Txt bold>{item.dialCode}</Txt>
+                        {item.iso === phoneCountryCode ? (
+                          <Icon name="checkmark-circle" color={c.gold} />
+                        ) : null}
+                      </Pressable>
+                    )}
+                    ListEmptyComponent={
+                      <Txt muted style={{ padding: 18, textAlign: "center" }}>
+                        {t("لا توجد دولة مطابقة", "No matching country")}
+                      </Txt>
+                    }
+                  />
+                </View>
+              </View>
+            </Modal>
             {company && (
               <>
                 <Field
@@ -693,13 +943,10 @@ export function Auth({ register = false }: { register?: boolean }) {
                   set={setBusiness}
                 />
                 <Field
-                  title={t("الهاتف الدولي", "International phone")}
-                  errorMessage={fieldError("phone")}
-                  value={phone}
-                  set={setPhone}
-                />
-                <Field
-                  title={t("رمز الدولة، مثال AE", "Country code, e.g. AE")}
+                  title={t(
+                    "رمز دولة الشركة، مثال AE",
+                    "Company country code, e.g. AE",
+                  )}
                   errorMessage={fieldError("country_code")}
                   value={country}
                   set={setCountry}
@@ -816,6 +1063,170 @@ export function Auth({ register = false }: { register?: boolean }) {
     </Screen>
   );
 }
+
+export function PhoneVerification({
+  email,
+  phone,
+}: {
+  email: string;
+  phone?: string;
+}) {
+  const { api, t, go } = useApp();
+  const [code, setCode] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [requested, setRequested] = useState(true);
+  const [notice, setNotice] = useState("");
+  const [error, setError] = useState<unknown>(null);
+
+  async function sendCode() {
+    if (busy || !email) return;
+
+    setBusy(true);
+    setError(null);
+    setNotice("");
+
+    try {
+      await api.request("/auth/phone-verification", {
+        method: "POST",
+        auth: false,
+        body: { email },
+      });
+
+      setRequested(true);
+      setNotice(
+        t(
+          "إذا كان الحساب مؤهلاً، فسيتم إرسال رمز التحقق إلى الهاتف المسجل. قد تنطبق مهلة إعادة الإرسال.",
+          "If the account is eligible, a verification code will be sent to its registered phone. Resend cooldowns may apply.",
+        ),
+      );
+    } catch (e) {
+      setError(e);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function confirmCode() {
+    if (busy || code.length !== 6) return;
+
+    setBusy(true);
+    setError(null);
+    setNotice("");
+
+    try {
+      const result = await api.request<{
+        data?: {
+          phone_verified?: boolean;
+          email_verified?: boolean;
+          account_verified?: boolean;
+        };
+      }>("/auth/verify-phone", {
+        method: "POST",
+        auth: false,
+        body: { email, code },
+      });
+
+      if (result.data?.phone_verified !== true) {
+        throw new ApiError(502);
+      }
+
+      setCode("");
+      setRequested(false);
+
+      setNotice(
+        result.data.email_verified
+          ? t(
+              "تم توثيق الهاتف والبريد الإلكتروني. يمكنك تسجيل الدخول الآن.",
+              "Your phone and email are verified. You can sign in now.",
+            )
+          : t(
+              "تم توثيق الهاتف بنجاح. افتح رسالة البريد الإلكتروني واضغط رابط التوثيق قبل تسجيل الدخول.",
+              "Phone verified successfully. Open your email and follow the verification link before signing in.",
+            ),
+      );
+    } catch (e) {
+      setError(e);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <Screen>
+      <Title title={t("تأكيد رقم الهاتف", "Verify your phone number")} />
+
+      <Card>
+        <Icon name="shield-checkmark-outline" size={38} />
+
+        <Txt bold size={17}>
+          {t("بقيت خطوة واحدة", "One more step")}
+        </Txt>
+
+        <Txt muted>
+          {t(
+            "أنشأنا طلب التسجيل. نحتاج إلى تأكيد رقم الهاتف والبريد الإلكتروني قبل السماح بتسجيل الدخول.",
+            "Your registration was accepted. Verify your phone and email before signing in.",
+          )}
+        </Txt>
+
+        <Txt bold>{email}</Txt>
+
+        {phone ? <Txt muted>{phone}</Txt> : null}
+
+        <Txt muted size={12}>
+          {t(
+            "تحقق من بريدك الإلكتروني وافتح رابط التوثيق الذي أرسلته المنصة. هذا إجراء منفصل عن رمز الهاتف.",
+            "Check your inbox and open the email verification link sent by the platform. This is separate from phone verification.",
+          )}
+        </Txt>
+
+        {!requested ? (
+          <Button
+            disabled={busy}
+            title={t("إرسال رمز الهاتف", "Send phone code")}
+            onPress={() => void sendCode()}
+          />
+        ) : (
+          <>
+            <Field
+              title={t(
+                "رمز التحقق المكون من 6 أرقام",
+                "6-digit verification code",
+              )}
+              value={code}
+              set={(value) => setCode(value.replace(/\D/g, "").slice(0, 6))}
+              numeric
+              maxLength={6}
+            />
+
+            <Button
+              disabled={busy || code.length !== 6}
+              title={t("تأكيد الهاتف", "Verify phone")}
+              onPress={() => void confirmCode()}
+            />
+
+            <Button
+              secondary
+              disabled={busy}
+              title={t("إعادة إرسال الرمز", "Resend code")}
+              onPress={() => void sendCode()}
+            />
+          </>
+        )}
+
+        {notice !== "" && <Txt>{notice}</Txt>}
+        {error != null && <ErrorBox error={error} />}
+      </Card>
+
+      <Button
+        secondary
+        title={t("العودة إلى تسجيل الدخول", "Back to sign in")}
+        onPress={() => go({ name: "auth" })}
+      />
+    </Screen>
+  );
+}
+
 export function ForgotPassword() {
   const { api, t } = useApp();
   const [email, setEmail] = useState(""),
@@ -880,7 +1291,9 @@ export function SecuritySettings() {
     [notice, setNotice] = useState(""),
     [current, setCurrent] = useState(""),
     [password, setPassword] = useState(""),
-    [confirmation, setConfirmation] = useState("");
+    [confirmation, setConfirmation] = useState(""),
+    [phoneCode, setPhoneCode] = useState(""),
+    [phoneRequested, setPhoneRequested] = useState(false);
   const devices = useLoad("devices-" + user?.id, () =>
     api.request<{
       data: {
@@ -908,6 +1321,64 @@ export function SecuritySettings() {
       setBusy(false);
     }
   }
+  async function sendPhoneCode() {
+    if (busy || !user?.phone || user.phone_verified === true) return;
+    setBusy(true);
+    setError(null);
+    setNotice("");
+    try {
+      await api.request("/auth/phone-verification", {
+        method: "POST",
+        auth: false,
+        body: { email: user.email },
+      });
+      setPhoneRequested(true);
+      setNotice(
+        t(
+          "إذا كان الحساب مؤهلاً، فسيتم إرسال رمز التحقق إلى رقم الهاتف المسجل.",
+          "If the account is eligible, a verification code will be sent to its registered phone.",
+        ),
+      );
+    } catch (e) {
+      setError(e);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function confirmPhoneCode() {
+    if (busy || !user || phoneCode.length !== 6) return;
+    setBusy(true);
+    setError(null);
+    setNotice("");
+    try {
+      const result = await api.request<{
+        data: {
+          phone_verified: boolean;
+          email_verified: boolean;
+          account_verified: boolean;
+        };
+      }>("/auth/verify-phone", {
+        method: "POST",
+        auth: false,
+        body: { email: user.email, code: phoneCode },
+      });
+
+      if (result.data?.phone_verified !== true) throw new ApiError(502);
+
+      await refreshUser();
+      setPhoneCode("");
+      setPhoneRequested(false);
+      setNotice(
+        t("تم توثيق رقم الهاتف بنجاح.", "Phone number verified successfully."),
+      );
+    } catch (e) {
+      setError(e);
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function revoke(id: number, isCurrent: boolean) {
     setBusy(true);
     setError(null);
@@ -960,6 +1431,81 @@ export function SecuritySettings() {
           "Manage access to your account with confidence.",
         )}
       />
+      <Card>
+        <Row>
+          <Icon
+            name={
+              user.phone_verified === true
+                ? "shield-checkmark-outline"
+                : "call-outline"
+            }
+            size={29}
+          />
+          <Txt bold>
+            {user.phone_verified === true
+              ? t("رقم الهاتف موثّق", "Phone verified")
+              : t("توثيق رقم الهاتف", "Verify phone number")}
+          </Txt>
+        </Row>
+        {user.phone ? (
+          <>
+            <Txt muted>{user.phone}</Txt>
+            {user.phone_verified === true ? (
+              <Txt muted size={12}>
+                {t(
+                  "تم تأكيد رقم الهاتف المرتبط بحسابك.",
+                  "The phone number linked to your account is confirmed.",
+                )}
+              </Txt>
+            ) : (
+              <>
+                <Txt muted size={12}>
+                  {t(
+                    "أرسل رمز تحقق إلى رقم الهاتف المسجل، ثم أدخل الرمز المكوّن من ستة أرقام.",
+                    "Request a code for your registered phone, then enter the six-digit code.",
+                  )}
+                </Txt>
+                <Button
+                  disabled={busy}
+                  title={t("إرسال رمز التحقق", "Send verification code")}
+                  onPress={() => void sendPhoneCode()}
+                />
+                {phoneRequested && (
+                  <>
+                    <Field
+                      title={t("رمز التحقق", "Verification code")}
+                      value={phoneCode}
+                      set={(value) =>
+                        setPhoneCode(value.replace(/\D/g, "").slice(0, 6))
+                      }
+                      numeric
+                      maxLength={6}
+                    />
+                    <Button
+                      disabled={busy || phoneCode.length !== 6}
+                      title={t("تأكيد رقم الهاتف", "Verify phone number")}
+                      onPress={() => void confirmPhoneCode()}
+                    />
+                    <Button
+                      secondary
+                      disabled={busy}
+                      title={t("إعادة إرسال الرمز", "Resend code")}
+                      onPress={() => void sendPhoneCode()}
+                    />
+                  </>
+                )}
+              </>
+            )}
+          </>
+        ) : (
+          <Txt muted size={12}>
+            {t(
+              "لا يوجد رقم هاتف مسجل لهذا الحساب. حدّث بياناتك من موقع HAG Brokers.",
+              "No phone number is registered for this account. Update your details on the HAG Brokers website.",
+            )}
+          </Txt>
+        )}
+      </Card>
       <Card>
         <Row>
           <Icon
