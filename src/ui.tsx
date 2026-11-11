@@ -56,6 +56,7 @@ export type Route = {
     | "auth"
     | "register"
     | "verify-phone"
+    | "company-onboarding"
     | "workspace"
     | "offers"
     | "offer"
