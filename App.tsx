@@ -166,9 +166,11 @@ function Application() {
             const me = await api.request<{ data: User }>("/me");
             if (active && generation === sessionVersion.current) {
               setUser(me.data);
-              setStack([!me.data.phone_verified
-                ? { name: "verify-phone", email: me.data.email, phone: me.data.phone ?? undefined }
-                : !me.data.company && !me.data.is_carrier
+              setStack([me.data.is_carrier
+                ? { name: "account" }
+                : !me.data.phone_verified
+                  ? { name: "verify-phone", email: me.data.email, phone: me.data.phone ?? undefined }
+                  : !me.data.company
                   ? { name: "company-onboarding" }
                   : { name: "account" }]);
             }
@@ -239,9 +241,11 @@ function Application() {
     api.setToken(token);
     setUser(identity);
     setRestoreError(null);
-    setStack([!identity.phone_verified
-      ? { name: "verify-phone", email: identity.email, phone: identity.phone ?? undefined }
-      : !identity.company && !identity.is_carrier
+    setStack([identity.is_carrier
+      ? { name: "account" }
+      : !identity.phone_verified
+        ? { name: "verify-phone", email: identity.email, phone: identity.phone ?? undefined }
+        : !identity.company
         ? { name: "company-onboarding" }
         : { name: "account" }]);
   }
