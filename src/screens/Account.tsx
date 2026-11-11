@@ -641,7 +641,7 @@ export function PhoneVerification({ email, phone: initialPhone }: { email: strin
           <>
             <Txt bold>{t("رقم الهاتف موثّق", "Phone verified")}</Txt>
             <Txt muted>{t("يمكنك متابعة إعداد مساحة شركتك من حسابك.", "Continue company setup from your account.")}</Txt>
-            <Button title={t("متابعة", "Continue")} onPress={() => go({ name: "company-onboarding" })} />
+            <Button title={t("متابعة", "Continue")} onPress={() => go(user.company ? { name: "workspace" } : user.is_carrier ? { name: "account" } : { name: "company-onboarding" })} />
           </>
         ) : (
           <>
