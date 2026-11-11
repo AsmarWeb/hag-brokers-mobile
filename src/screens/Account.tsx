@@ -266,7 +266,7 @@ export function Account() {
           </View>
         )}
       </View>
-      {user && !user.phone_verified ? (
+      {user && !user.phone_verified && !user.is_carrier ? (
         <MenuGroup>
           <MenuRow
             icon="shield-checkmark-outline"
