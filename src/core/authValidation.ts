@@ -1,15 +1,8 @@
-import { PHONE_COUNTRIES } from "./phoneCountries";
-
 export type AuthForm = {
   name: string;
   email: string;
   password: string;
   confirmation: string;
-  company: boolean;
-  business: string;
-  phone: string;
-  phoneCountryCode: string;
-  country: string;
 };
 export type AuthFields = Record<string, string[]>;
 export function validateAuth(
@@ -30,13 +23,11 @@ export function validateAuth(
   if (
     form.email.trim() &&
     !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())
-  )
+  ) {
     errors.email = [
-      say(
-        "أدخل بريدًا إلكترونيًا صحيحًا، مثل name@company.com.",
-        "Enter a valid email, such as name@company.com.",
-      ),
+      say("أدخل بريدًا إلكترونيًا صحيحًا.", "Enter a valid email address."),
     ];
+  }
   if (form.email.trim().length > 255)
     errors.email = [
       say("البريد الإلكتروني طويل جدًا.", "The email address is too long."),
@@ -67,11 +58,11 @@ export function validateAuth(
         "Use no more than 160 name characters.",
       ),
     ];
-  if (length > 0 && length < 12)
+  if (length > 0 && length < 8)
     errors.password = [
       say(
-        "كلمة المرور تحتاج إلى 12 حرفًا على الأقل.",
-        "Your password needs at least 12 characters.",
+        "كلمة المرور تحتاج إلى 8 أحرف على الأقل.",
+        "Your password needs at least 8 characters.",
       ),
     ];
   if (!form.confirmation)
@@ -88,63 +79,6 @@ export function validateAuth(
         "The password confirmation does not match.",
       ),
     ];
-  required(
-    "phone",
-    form.phone,
-    say(
-      "أدخل رقم الهاتف المحلي دون مفتاح الدولة.",
-      "Enter your local phone number without the country calling code.",
-    ),
-  );
-
-  const phoneDigits = form.phone.replace(/\D/g, "");
-  if (
-    form.phone.trim() &&
-    (phoneDigits.length < 7 ||
-      phoneDigits.length > 15 ||
-      /^0+$/.test(phoneDigits))
-  ) {
-    errors.phone = [
-      say(
-        "أدخل رقمًا صحيحًا من 7 إلى 15 رقمًا.",
-        "Enter a valid phone number containing 7 to 15 digits.",
-      ),
-    ];
-  }
-
-  if (form.phone.trim().length > 50) {
-    errors.phone = [
-      say("رقم الهاتف طويل جدًا.", "The phone number is too long."),
-    ];
-  }
-
-  if (!PHONE_COUNTRIES.some((item) => item.iso === form.phoneCountryCode)) {
-    errors.phone_country_code = [
-      say("اختر دولة صحيحة لمفتاح الهاتف.", "Choose a valid phone country."),
-    ];
-  }
-
-  if (form.company) {
-    required(
-      "company_name",
-      form.business,
-      say("أدخل اسم الشركة.", "Enter your company name."),
-    );
-    if (Array.from(form.business.trim()).length > 255)
-      errors.company_name = [
-        say(
-          "اسم الشركة لا يتجاوز 255 حرفًا.",
-          "Use no more than 255 characters for the company name.",
-        ),
-      ];
-    if (!/^[a-z]{2}$/i.test(form.country.trim()))
-      errors.country_code = [
-        say(
-          "استخدم رمز دولة من حرفين بالإنجليزية، مثل AE للإمارات.",
-          "Use a two-letter country code, such as AE for the UAE.",
-        ),
-      ];
-  }
   return errors;
 }
 export function authFieldMessage(
