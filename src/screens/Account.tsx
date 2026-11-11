@@ -276,7 +276,7 @@ export function Account() {
           />
         </MenuGroup>
       ) : null}
-      {user && user.phone_verified && !user.company && !user.is_carrier ? (
+      {user && (!user.phone_verification_required || user.phone_verified) && !user.company && !user.is_carrier ? (
         <MenuGroup>
           <MenuRow
             icon="business-outline"
@@ -677,6 +677,10 @@ export function CompanyOnboarding() {
 
   async function submit() {
     if (busy || !companyName.trim() || !/^[A-Za-z]{2}$/.test(countryCode)) return;
+    if (!user?.phone_verified) {
+      go({ name: "verify-phone", email: user?.email ?? "", phone: user?.phone ?? undefined });
+      return;
+    }
     setBusy(true);
     setError(null);
     try {
