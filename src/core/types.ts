@@ -5,6 +5,7 @@ export type User = {
   email_verified: boolean;
   phone?: string | null;
   phone_verified?: boolean;
+  phone_verification_required?: boolean;
   account_verified?: boolean;
   account_type: "individual" | "company";
   is_carrier?: boolean;
