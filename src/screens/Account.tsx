@@ -577,7 +577,100 @@ export function AppearanceSettings() {
     </Screen>
   );
 }
-export function Auth({ register = false 
+export function Auth({ register = false }: { register?: boolean }) {
+  const { api, t, ar, go, signIn, c } = useApp();
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmation, setConfirmation] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<unknown>(null);
+  const [visible, setVisible] = useState(false);
+
+  async function submit() {
+    if (busy || !nativeSecureStorage) return;
+    const fields = validateAuth({ name, email, password, confirmation }, register, ar);
+    if (Object.keys(fields).length) {
+      setError(new ApiError(422, fields));
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    try {
+      const device = await deviceName(api.origin);
+      if (register) {
+        const result = await api.request<{ data?: { email?: unknown; verification_required?: unknown } }>(
+          "/auth/register",
+          {
+            method: "POST",
+            auth: false,
+            body: {
+              name: name.trim(),
+              email: email.trim().toLowerCase(),
+              password,
+              password_confirmation: confirmation,
+              device_name: device,
+            },
+          },
+        );
+        if (typeof result.data?.email !== "string" || result.data.verification_required !== true) {
+          throw new ApiError(502);
+        }
+        setPassword("");
+        setConfirmation("");
+        go({ name: "verify-phone", email: result.data.email });
+        return;
+      }
+
+      const response = await api.request<unknown>("/auth/login", {
+        method: "POST",
+        auth: false,
+        body: { email: email.trim().toLowerCase(), password, device_name: device },
+      });
+      const session = parseSession(response);
+      await signIn(session.access_token, session.user);
+      setPassword("");
+      setConfirmation("");
+    } catch (e) {
+      setError(e);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const fieldError = (key: string) =>
+    error instanceof ApiError && error.status === 422 && error.fields[key]?.[0]
+      ? authFieldMessage(key, error.fields[key][0], ar)
+      : undefined;
+
+  return (
+    <Screen>
+      <View style={{ alignItems: "center", marginVertical: 17, gap: 12 }}>
+        <View style={{ width: 72, height: 72, borderRadius: 25, backgroundColor: c.soft, alignItems: "center", justifyContent: "center" }}>
+          <Icon name={register ? "person-add-outline" : "boat-outline"} size={36} />
+        </View>
+        <Txt bold size={28}>{register ? t("إنشاء حساب شخصي", "Create your personal account") : t("مرحبًا بعودتك", "Welcome back")}</Txt>
+        <Txt muted size={13}>{t("الشحن البحري والفرص التجارية، في مكان واحد.", "Sea freight and commercial opportunities, together.")}</Txt>
+      </View>
+      {!nativeSecureStorage && <Card><Txt>{t("افتح التطبيق في Expo Go على هاتفك لتسجيل الدخول. معاينة المتصفح للتصفح فقط.", "Open the app on your phone to sign in. Browser preview supports browsing only.")}</Txt></Card>}
+      <Card>
+        {register ? <Field title={t("الاسم الكامل", "Full name")} errorMessage={fieldError("name")} value={name} set={setName} /> : null}
+        <Field title={t("البريد الإلكتروني", "Email address")} errorMessage={fieldError("email")} value={email} set={setEmail} email />
+        <Field title={t("كلمة المرور", "Password")} errorMessage={fieldError("password")} value={password} set={setPassword} secret={!visible} />
+        <Pressable accessibilityRole="button" onPress={() => setVisible((v) => !v)} style={{ padding: 10, minHeight: 44 }}>
+          <Txt size={12} muted>{visible ? t("إخفاء كلمة المرور", "Hide password") : t("إظهار كلمة المرور", "Show password")}</Txt>
+        </Pressable>
+        {register ? <Field title={t("تأكيد كلمة المرور", "Confirm password")} errorMessage={fieldError("password_confirmation")} value={confirmation} set={setConfirmation} secret /> : null}
+        {!register ? <Pressable accessibilityRole="button" onPress={() => go({ name: "forgot" })} style={{ padding: 10, minHeight: 44 }}><Txt size={12} style={{ color: c.gold }}>{t("نسيت كلمة المرور؟", "Forgot password?")}</Txt></Pressable> : null}
+        {error != null ? <ErrorBox error={error} summary={error instanceof ApiError && error.status === 422 ? t("راجع الملاحظات بجوار الحقول.", "Review the notes beside each field.") : undefined} /> : null}
+        {error instanceof ApiError && error.status === 403 ? <Txt muted size={12}>{t("حسابات إدارة المنصة تستخدم لوحة الإدارة على الموقع.", "Platform administrators use the website dashboard.")}</Txt> : null}
+        <Button disabled={busy || !nativeSecureStorage} title={busy ? t("جارٍ المتابعة…", "Please wait…") : register ? t("إنشاء حساب", "Create account") : t("تسجيل الدخول", "Sign in")} onPress={() => void submit()} />
+      </Card>
+      <Button secondary title={register ? t("لديك حساب؟ تسجيل الدخول", "Already registered? Sign in") : t("جديد هنا؟ إنشاء حساب", "New here? Create account")} onPress={() => go({ name: register ? "auth" : "register" })} />
+      <Txt muted size={11}>{t("بعد توثيق البريد وتسجيل الدخول، ستضيف رقم هاتفك وبيانات شركتك.", "After verifying your email and signing in, you will add your phone number and company details.")}</Txt>
+    </Screen>
+  );
+}
 
 export function PhoneVerification({ email, phone: initialPhone }: { email: string; phone?: string }) {
   const { api, t, go, user, refreshUser } = useApp();
