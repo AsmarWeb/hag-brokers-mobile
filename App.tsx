@@ -57,6 +57,7 @@ import {
   ForgotPassword,
   Support,
   PhoneVerification,
+  CompanyOnboarding,
 } from "./src/screens/Account";
 import { Workspace } from "./src/screens/Workspace";
 import { Publish, Manage } from "./src/screens/Publish";
@@ -163,8 +164,14 @@ function Application() {
           api.setToken(token);
           try {
             const me = await api.request<{ data: User }>("/me");
-            if (active && generation === sessionVersion.current)
+            if (active && generation === sessionVersion.current) {
               setUser(me.data);
+              setStack([!me.data.phone_verified
+                ? { name: "verify-phone", email: me.data.email, phone: me.data.phone ?? undefined }
+                : !me.data.company
+                  ? { name: "company-onboarding" }
+                  : { name: "account" }]);
+            }
           } catch (error) {
             if (active) {
               if (invalidSession(error)) reset();
@@ -232,7 +239,11 @@ function Application() {
     api.setToken(token);
     setUser(identity);
     setRestoreError(null);
-    setStack([{ name: "account" }]);
+    setStack([!identity.phone_verified
+      ? { name: "verify-phone", email: identity.email, phone: identity.phone ?? undefined }
+      : !identity.company
+        ? { name: "company-onboarding" }
+        : { name: "account" }]);
   }
   async function logout() {
     await clearDisplayedPush();
@@ -321,9 +332,9 @@ function Application() {
       case "register":
         return <Auth register />;
       case "verify-phone":
-        return (
-          <PhoneVerification email={route.email ?? ""} phone={route.phone} />
-        );
+        return <PhoneVerification email={route.email ?? ""} phone={route.phone} />;
+      case "company-onboarding":
+        return <CompanyOnboarding />;
       case "account":
         return <Account />;
       case "language":
