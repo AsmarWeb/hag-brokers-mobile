@@ -166,13 +166,20 @@ function Application() {
             const me = await api.request<{ data: User }>("/me");
             if (active && generation === sessionVersion.current) {
               setUser(me.data);
-              setStack([me.data.is_carrier
-                ? { name: "account" }
-                : me.data.phone_verification_required && !me.data.phone_verified
-                  ? { name: "verify-phone", email: me.data.email, phone: me.data.phone ?? undefined }
-                  : me.data.phone_verification_required && !me.data.company
-                  ? { name: "company-onboarding" }
-                  : { name: "account" }]);
+              setStack([
+                me.data.is_carrier
+                  ? { name: "account" }
+                  : me.data.phone_verification_required &&
+                      !me.data.phone_verified
+                    ? {
+                        name: "verify-phone",
+                        email: me.data.email,
+                        phone: me.data.phone ?? undefined,
+                      }
+                    : me.data.phone_verification_required && !me.data.company
+                      ? { name: "company-onboarding" }
+                      : { name: "account" },
+              ]);
             }
           } catch (error) {
             if (active) {
@@ -241,13 +248,19 @@ function Application() {
     api.setToken(token);
     setUser(identity);
     setRestoreError(null);
-    setStack([identity.is_carrier
-      ? { name: "account" }
-      : identity.phone_verification_required && !identity.phone_verified
-        ? { name: "verify-phone", email: identity.email, phone: identity.phone ?? undefined }
-        : identity.phone_verification_required && !identity.company
-        ? { name: "company-onboarding" }
-        : { name: "account" }]);
+    setStack([
+      identity.is_carrier
+        ? { name: "account" }
+        : identity.phone_verification_required && !identity.phone_verified
+          ? {
+              name: "verify-phone",
+              email: identity.email,
+              phone: identity.phone ?? undefined,
+            }
+          : identity.phone_verification_required && !identity.company
+            ? { name: "company-onboarding" }
+            : { name: "account" },
+    ]);
   }
   async function logout() {
     await clearDisplayedPush();
@@ -336,7 +349,9 @@ function Application() {
       case "register":
         return <Auth register />;
       case "verify-phone":
-        return <PhoneVerification email={route.email ?? ""} phone={route.phone} />;
+        return (
+          <PhoneVerification email={route.email ?? ""} phone={route.phone} />
+        );
       case "company-onboarding":
         return <CompanyOnboarding />;
       case "account":

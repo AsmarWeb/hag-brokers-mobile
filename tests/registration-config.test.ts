@@ -23,7 +23,13 @@ const json = (data: unknown, status = 200) =>
 test("personal registration validates only name email password and confirmation", () => {
   assert.deepEqual(validateAuth(form, true, true), {});
   const errors = validateAuth(
-    { ...form, name: "", email: "invalid", password: "short", confirmation: "different" },
+    {
+      ...form,
+      name: "",
+      email: "invalid",
+      password: "short",
+      confirmation: "different",
+    },
     true,
     true,
   );

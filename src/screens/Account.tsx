@@ -1,11 +1,5 @@
 import React, { useState } from "react";
-import {
-  Alert,
-  Linking,
-  Pressable,
-  View,
-  Text,
-} from "react-native";
+import { Alert, Linking, Pressable, View, Text } from "react-native";
 import {
   Badge,
   Button,
@@ -266,22 +260,40 @@ export function Account() {
           </View>
         )}
       </View>
-      {user && user.phone_verification_required && !user.phone_verified && !user.is_carrier ? (
+      {user &&
+      user.phone_verification_required &&
+      !user.phone_verified &&
+      !user.is_carrier ? (
         <MenuGroup>
           <MenuRow
             icon="shield-checkmark-outline"
             title={t("توثيق رقم الهاتف", "Verify phone number")}
-            sub={t("وثّق هاتفك لتأمين الحساب وفتح وظائف الشركة.", "Verify your phone to secure your account and unlock company features.")}
-            onPress={() => go({ name: "verify-phone", email: user.email, phone: user.phone ?? undefined })}
+            sub={t(
+              "وثّق هاتفك لتأمين الحساب وفتح وظائف الشركة.",
+              "Verify your phone to secure your account and unlock company features.",
+            )}
+            onPress={() =>
+              go({
+                name: "verify-phone",
+                email: user.email,
+                phone: user.phone ?? undefined,
+              })
+            }
           />
         </MenuGroup>
       ) : null}
-      {user && (!user.phone_verification_required || user.phone_verified) && !user.company && !user.is_carrier ? (
+      {user &&
+      (!user.phone_verification_required || user.phone_verified) &&
+      !user.company &&
+      !user.is_carrier ? (
         <MenuGroup>
           <MenuRow
             icon="business-outline"
             title={t("إعداد مساحة الشركة", "Set up company workspace")}
-            sub={t("أكمل بيانات شركتك لإنشاء مساحة عمل تملكها.", "Add your company details to create a workspace you own.")}
+            sub={t(
+              "أكمل بيانات شركتك لإنشاء مساحة عمل تملكها.",
+              "Add your company details to create a workspace you own.",
+            )}
             onPress={() => go({ name: "company-onboarding" })}
           />
         </MenuGroup>
@@ -589,7 +601,11 @@ export function Auth({ register = false }: { register?: boolean }) {
 
   async function submit() {
     if (busy || !nativeSecureStorage) return;
-    const fields = validateAuth({ name, email, password, confirmation }, register, ar);
+    const fields = validateAuth(
+      { name, email, password, confirmation },
+      register,
+      ar,
+    );
     if (Object.keys(fields).length) {
       setError(new ApiError(422, fields));
       return;
@@ -599,21 +615,23 @@ export function Auth({ register = false }: { register?: boolean }) {
     try {
       const device = await deviceName(api.origin);
       if (register) {
-        const result = await api.request<{ data?: { email?: unknown; verification_required?: unknown } }>(
-          "/auth/register",
-          {
-            method: "POST",
-            auth: false,
-            body: {
-              name: name.trim(),
-              email: email.trim().toLowerCase(),
-              password,
-              password_confirmation: confirmation,
-              device_name: device,
-            },
+        const result = await api.request<{
+          data?: { email?: unknown; verification_required?: unknown };
+        }>("/auth/register", {
+          method: "POST",
+          auth: false,
+          body: {
+            name: name.trim(),
+            email: email.trim().toLowerCase(),
+            password,
+            password_confirmation: confirmation,
+            device_name: device,
           },
-        );
-        if (typeof result.data?.email !== "string" || result.data.verification_required !== true) {
+        });
+        if (
+          typeof result.data?.email !== "string" ||
+          result.data.verification_required !== true
+        ) {
           throw new ApiError(502);
         }
         setPassword("");
@@ -625,7 +643,11 @@ export function Auth({ register = false }: { register?: boolean }) {
       const response = await api.request<unknown>("/auth/login", {
         method: "POST",
         auth: false,
-        body: { email: email.trim().toLowerCase(), password, device_name: device },
+        body: {
+          email: email.trim().toLowerCase(),
+          password,
+          device_name: device,
+        },
       });
       const session = parseSession(response);
       await signIn(session.access_token, session.user);
@@ -646,33 +668,156 @@ export function Auth({ register = false }: { register?: boolean }) {
   return (
     <Screen>
       <View style={{ alignItems: "center", marginVertical: 17, gap: 12 }}>
-        <View style={{ width: 72, height: 72, borderRadius: 25, backgroundColor: c.soft, alignItems: "center", justifyContent: "center" }}>
-          <Icon name={register ? "person-add-outline" : "boat-outline"} size={36} />
+        <View
+          style={{
+            width: 72,
+            height: 72,
+            borderRadius: 25,
+            backgroundColor: c.soft,
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <Icon
+            name={register ? "person-add-outline" : "boat-outline"}
+            size={36}
+          />
         </View>
-        <Txt bold size={28}>{register ? t("إنشاء حساب شخصي", "Create your personal account") : t("مرحبًا بعودتك", "Welcome back")}</Txt>
-        <Txt muted size={13}>{t("الشحن البحري والفرص التجارية، في مكان واحد.", "Sea freight and commercial opportunities, together.")}</Txt>
+        <Txt bold size={28}>
+          {register
+            ? t("إنشاء حساب شخصي", "Create your personal account")
+            : t("مرحبًا بعودتك", "Welcome back")}
+        </Txt>
+        <Txt muted size={13}>
+          {t(
+            "الشحن البحري والفرص التجارية، في مكان واحد.",
+            "Sea freight and commercial opportunities, together.",
+          )}
+        </Txt>
       </View>
-      {!nativeSecureStorage && <Card><Txt>{t("افتح التطبيق في Expo Go على هاتفك لتسجيل الدخول. معاينة المتصفح للتصفح فقط.", "Open the app on your phone to sign in. Browser preview supports browsing only.")}</Txt></Card>}
+      {!nativeSecureStorage && (
+        <Card>
+          <Txt>
+            {t(
+              "افتح التطبيق في Expo Go على هاتفك لتسجيل الدخول. معاينة المتصفح للتصفح فقط.",
+              "Open the app on your phone to sign in. Browser preview supports browsing only.",
+            )}
+          </Txt>
+        </Card>
+      )}
       <Card>
-        {register ? <Field title={t("الاسم الكامل", "Full name")} errorMessage={fieldError("name")} value={name} set={setName} /> : null}
-        <Field title={t("البريد الإلكتروني", "Email address")} errorMessage={fieldError("email")} value={email} set={setEmail} email />
-        <Field title={t("كلمة المرور", "Password")} errorMessage={fieldError("password")} value={password} set={setPassword} secret={!visible} />
-        <Pressable accessibilityRole="button" onPress={() => setVisible((v) => !v)} style={{ padding: 10, minHeight: 44 }}>
-          <Txt size={12} muted>{visible ? t("إخفاء كلمة المرور", "Hide password") : t("إظهار كلمة المرور", "Show password")}</Txt>
+        {register ? (
+          <Field
+            title={t("الاسم الكامل", "Full name")}
+            errorMessage={fieldError("name")}
+            value={name}
+            set={setName}
+          />
+        ) : null}
+        <Field
+          title={t("البريد الإلكتروني", "Email address")}
+          errorMessage={fieldError("email")}
+          value={email}
+          set={setEmail}
+          email
+        />
+        <Field
+          title={t("كلمة المرور", "Password")}
+          errorMessage={fieldError("password")}
+          value={password}
+          set={setPassword}
+          secret={!visible}
+        />
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => setVisible((v) => !v)}
+          style={{ padding: 10, minHeight: 44 }}
+        >
+          <Txt size={12} muted>
+            {visible
+              ? t("إخفاء كلمة المرور", "Hide password")
+              : t("إظهار كلمة المرور", "Show password")}
+          </Txt>
         </Pressable>
-        {register ? <Field title={t("تأكيد كلمة المرور", "Confirm password")} errorMessage={fieldError("password_confirmation")} value={confirmation} set={setConfirmation} secret /> : null}
-        {!register ? <Pressable accessibilityRole="button" onPress={() => go({ name: "forgot" })} style={{ padding: 10, minHeight: 44 }}><Txt size={12} style={{ color: c.gold }}>{t("نسيت كلمة المرور؟", "Forgot password?")}</Txt></Pressable> : null}
-        {error != null ? <ErrorBox error={error} summary={error instanceof ApiError && error.status === 422 ? t("راجع الملاحظات بجوار الحقول.", "Review the notes beside each field.") : undefined} /> : null}
-        {error instanceof ApiError && error.status === 403 ? <Txt muted size={12}>{t("حسابات إدارة المنصة تستخدم لوحة الإدارة على الموقع.", "Platform administrators use the website dashboard.")}</Txt> : null}
-        <Button disabled={busy || !nativeSecureStorage} title={busy ? t("جارٍ المتابعة…", "Please wait…") : register ? t("إنشاء حساب", "Create account") : t("تسجيل الدخول", "Sign in")} onPress={() => void submit()} />
+        {register ? (
+          <Field
+            title={t("تأكيد كلمة المرور", "Confirm password")}
+            errorMessage={fieldError("password_confirmation")}
+            value={confirmation}
+            set={setConfirmation}
+            secret
+          />
+        ) : null}
+        {!register ? (
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => go({ name: "forgot" })}
+            style={{ padding: 10, minHeight: 44 }}
+          >
+            <Txt size={12} style={{ color: c.gold }}>
+              {t("نسيت كلمة المرور؟", "Forgot password?")}
+            </Txt>
+          </Pressable>
+        ) : null}
+        {error != null ? (
+          <ErrorBox
+            error={error}
+            summary={
+              error instanceof ApiError && error.status === 422
+                ? t(
+                    "راجع الملاحظات بجوار الحقول.",
+                    "Review the notes beside each field.",
+                  )
+                : undefined
+            }
+          />
+        ) : null}
+        {error instanceof ApiError && error.status === 403 ? (
+          <Txt muted size={12}>
+            {t(
+              "حسابات إدارة المنصة تستخدم لوحة الإدارة على الموقع.",
+              "Platform administrators use the website dashboard.",
+            )}
+          </Txt>
+        ) : null}
+        <Button
+          disabled={busy || !nativeSecureStorage}
+          title={
+            busy
+              ? t("جارٍ المتابعة…", "Please wait…")
+              : register
+                ? t("إنشاء حساب", "Create account")
+                : t("تسجيل الدخول", "Sign in")
+          }
+          onPress={() => void submit()}
+        />
       </Card>
-      <Button secondary title={register ? t("لديك حساب؟ تسجيل الدخول", "Already registered? Sign in") : t("جديد هنا؟ إنشاء حساب", "New here? Create account")} onPress={() => go({ name: register ? "auth" : "register" })} />
-      <Txt muted size={11}>{t("بعد توثيق البريد وتسجيل الدخول، ستضيف رقم هاتفك وبيانات شركتك.", "After verifying your email and signing in, you will add your phone number and company details.")}</Txt>
+      <Button
+        secondary
+        title={
+          register
+            ? t("لديك حساب؟ تسجيل الدخول", "Already registered? Sign in")
+            : t("جديد هنا؟ إنشاء حساب", "New here? Create account")
+        }
+        onPress={() => go({ name: register ? "auth" : "register" })}
+      />
+      <Txt muted size={11}>
+        {t(
+          "بعد توثيق البريد وتسجيل الدخول، ستضيف رقم هاتفك وبيانات شركتك.",
+          "After verifying your email and signing in, you will add your phone number and company details.",
+        )}
+      </Txt>
     </Screen>
   );
 }
 
-export function PhoneVerification({ email, phone: initialPhone }: { email: string; phone?: string }) {
+export function PhoneVerification({
+  email,
+  phone: initialPhone,
+}: {
+  email: string;
+  phone?: string;
+}) {
   const { api, t, go, user, refreshUser } = useApp();
   const [phone, setPhone] = useState(initialPhone ?? user?.phone ?? "");
   const [countryCode, setCountryCode] = useState("AE");
@@ -688,11 +833,26 @@ export function PhoneVerification({ email, phone: initialPhone }: { email: strin
     setError(null);
     setNotice("");
     try {
-      await api.request("/auth/phone", { method: "PUT", body: { phone: phone.trim(), phone_country_code: countryCode } });
-      const result = await api.request<{ data?: { verification_sent?: boolean } }>("/auth/phone-verification", { method: "POST" });
+      await api.request("/auth/phone", {
+        method: "PUT",
+        body: { phone: phone.trim(), phone_country_code: countryCode },
+      });
+      const result = await api.request<{
+        data?: { verification_sent?: boolean };
+      }>("/auth/phone-verification", { method: "POST" });
       await refreshUser();
       setRequested(true);
-      setNotice(result.data?.verification_sent ? t("أرسلنا رمز التحقق إلى رقمك.", "A verification code was sent to your phone.") : t("تعذر إرسال الرمز الآن. انتظر مهلة الإرسال ثم حاول مجددًا.", "We could not send the code right now. Wait for the resend cooldown and try again."));
+      setNotice(
+        result.data?.verification_sent
+          ? t(
+              "أرسلنا رمز التحقق إلى رقمك.",
+              "A verification code was sent to your phone.",
+            )
+          : t(
+              "تعذر إرسال الرمز الآن. انتظر مهلة الإرسال ثم حاول مجددًا.",
+              "We could not send the code right now. Wait for the resend cooldown and try again.",
+            ),
+      );
     } catch (e) {
       setError(e);
     } finally {
@@ -706,10 +866,18 @@ export function PhoneVerification({ email, phone: initialPhone }: { email: strin
     setError(null);
     setNotice("");
     try {
-      const result = await api.request<{ data?: { phone_verified?: boolean } }>("/auth/verify-phone", { method: "POST", body: { code } });
+      const result = await api.request<{ data?: { phone_verified?: boolean } }>(
+        "/auth/verify-phone",
+        { method: "POST", body: { code } },
+      );
       if (result.data?.phone_verified !== true) throw new ApiError(502);
       setCode("");
-      setNotice(t("تم توثيق رقم الهاتف. يمكنك الآن إعداد مساحة شركتك.", "Your phone is verified. You can now set up your company workspace."));
+      setNotice(
+        t(
+          "تم توثيق رقم الهاتف. يمكنك الآن إعداد مساحة شركتك.",
+          "Your phone is verified. You can now set up your company workspace.",
+        ),
+      );
       await refreshUser();
     } catch (e) {
       setError(e);
@@ -720,34 +888,114 @@ export function PhoneVerification({ email, phone: initialPhone }: { email: strin
 
   return (
     <Screen>
-      <Title title={t("توثيق رقم الهاتف", "Verify your phone number")} sub={t("هذه الخطوة تأتي بعد تسجيل الدخول لحماية حسابك.", "This step happens after sign-in to protect your account.")} />
+      <Title
+        title={t("توثيق رقم الهاتف", "Verify your phone number")}
+        sub={t(
+          "هذه الخطوة تأتي بعد تسجيل الدخول لحماية حسابك.",
+          "This step happens after sign-in to protect your account.",
+        )}
+      />
       <Card>
         <Icon name="shield-checkmark-outline" size={38} />
         {!user ? (
           <>
-            <Txt bold size={17}>{t("تحقق من بريدك الإلكتروني أولاً", "Verify your email first")}</Txt>
-            <Txt muted>{t("أرسلنا رابط التوثيق إلى بريدك. افتح الرابط ثم سجّل الدخول لإضافة رقم هاتفك وتوثيقه.", "We sent a verification link to your email. Open it, then sign in to add and verify your phone number.")}</Txt>
+            <Txt bold size={17}>
+              {t("تحقق من بريدك الإلكتروني أولاً", "Verify your email first")}
+            </Txt>
+            <Txt muted>
+              {t(
+                "أرسلنا رابط التوثيق إلى بريدك. افتح الرابط ثم سجّل الدخول لإضافة رقم هاتفك وتوثيقه.",
+                "We sent a verification link to your email. Open it, then sign in to add and verify your phone number.",
+              )}
+            </Txt>
             <Txt bold>{email}</Txt>
-            <Button title={t("العودة إلى تسجيل الدخول", "Back to sign in")} onPress={() => go({ name: "auth" })} />
+            <Button
+              title={t("العودة إلى تسجيل الدخول", "Back to sign in")}
+              onPress={() => go({ name: "auth" })}
+            />
           </>
         ) : user.phone_verified ? (
           <>
             <Txt bold>{t("رقم الهاتف موثّق", "Phone verified")}</Txt>
-            <Txt muted>{t("يمكنك متابعة إعداد مساحة شركتك من حسابك.", "Continue company setup from your account.")}</Txt>
-            <Button title={t("متابعة", "Continue")} onPress={() => go(user.company ? { name: "workspace" } : user.is_carrier ? { name: "account" } : { name: "company-onboarding" })} />
+            <Txt muted>
+              {t(
+                "يمكنك متابعة إعداد مساحة شركتك من حسابك.",
+                "Continue company setup from your account.",
+              )}
+            </Txt>
+            <Button
+              title={t("متابعة", "Continue")}
+              onPress={() =>
+                go(
+                  user.company
+                    ? { name: "workspace" }
+                    : user.is_carrier
+                      ? { name: "account" }
+                      : { name: "company-onboarding" },
+                )
+              }
+            />
           </>
         ) : (
           <>
-            <Txt muted>{t("أدخل رقمك بصيغة دولية أو رقمًا محليًا مع اختيار الدولة.", "Enter your number in international format or a local number with its country selected.")}</Txt>
-            <Field title={t("الدولة (رمز ISO)", "Country (ISO code)")} value={countryCode} set={setCountryCode} />
-            <Field title={t("رقم الهاتف", "Phone number")} value={phone} set={setPhone} />
+            <Txt muted>
+              {t(
+                "أدخل رقمك بصيغة دولية أو رقمًا محليًا مع اختيار الدولة.",
+                "Enter your number in international format or a local number with its country selected.",
+              )}
+            </Txt>
+            <Field
+              title={t("الدولة (رمز ISO)", "Country (ISO code)")}
+              value={countryCode}
+              set={setCountryCode}
+            />
+            <Field
+              title={t("رقم الهاتف", "Phone number")}
+              value={phone}
+              set={setPhone}
+            />
             {!requested ? (
-              <Button disabled={busy || !phone.trim() || !/^[A-Z]{2}$/.test(countryCode)} title={busy ? t("جارٍ الإرسال…", "Sending…") : t("حفظ الرقم وإرسال الرمز", "Save number and send code")} onPress={() => void sendCode()} />
+              <Button
+                disabled={
+                  busy || !phone.trim() || !/^[A-Z]{2}$/.test(countryCode)
+                }
+                title={
+                  busy
+                    ? t("جارٍ الإرسال…", "Sending…")
+                    : t("حفظ الرقم وإرسال الرمز", "Save number and send code")
+                }
+                onPress={() => void sendCode()}
+              />
             ) : (
               <>
-                <Field title={t("رمز التحقق المكون من 6 أرقام", "6-digit verification code")} value={code} set={(value) => setCode(value.replace(/\D/g, "").slice(0, 6))} numeric maxLength={6} />
-                <Button disabled={busy || code.length !== 6} title={busy ? t("جارٍ التحقق…", "Verifying…") : t("تأكيد الهاتف", "Verify phone")} onPress={() => void confirmCode()} />
-                <Button secondary disabled={busy} title={t("إعادة إرسال الرمز", "Resend code")} onPress={() => { setRequested(false); void sendCode(); }} />
+                <Field
+                  title={t(
+                    "رمز التحقق المكون من 6 أرقام",
+                    "6-digit verification code",
+                  )}
+                  value={code}
+                  set={(value) => setCode(value.replace(/\D/g, "").slice(0, 6))}
+                  numeric
+                  maxLength={6}
+                />
+                <Button
+                  disabled={busy || code.length !== 6}
+                  title={
+                    busy
+                      ? t("جارٍ التحقق…", "Verifying…")
+                      : t("تأكيد الهاتف", "Verify phone")
+                  }
+                  onPress={() => void confirmCode()}
+                />
+                <Button
+                  secondary
+                  disabled={busy}
+                  title={t("إعادة إرسال الرمز", "Resend code")}
+                  onPress={() => {
+                    setRequested(false);
+                    void sendCode();
+                  }}
+                />
               </>
             )}
           </>
@@ -769,9 +1017,14 @@ export function CompanyOnboarding() {
   const [done, setDone] = useState(false);
 
   async function submit() {
-    if (busy || !companyName.trim() || !/^[A-Za-z]{2}$/.test(countryCode)) return;
+    if (busy || !companyName.trim() || !/^[A-Za-z]{2}$/.test(countryCode))
+      return;
     if (!user?.phone_verified) {
-      go({ name: "verify-phone", email: user?.email ?? "", phone: user?.phone ?? undefined });
+      go({
+        name: "verify-phone",
+        email: user?.email ?? "",
+        phone: user?.phone ?? undefined,
+      });
       return;
     }
     setBusy(true);
@@ -779,7 +1032,11 @@ export function CompanyOnboarding() {
     try {
       await api.request("/company/onboarding", {
         method: "POST",
-        body: { company_name: companyName.trim(), country_code: countryCode.toUpperCase(), city: city.trim() || null },
+        body: {
+          company_name: companyName.trim(),
+          country_code: countryCode.toUpperCase(),
+          city: city.trim() || null,
+        },
       });
       setDone(true);
       try {
@@ -796,23 +1053,71 @@ export function CompanyOnboarding() {
 
   return (
     <Screen>
-      <Title title={t("إعداد مساحة شركتك", "Set up your company workspace")} sub={t("أنشئ مساحة مستقلة تكون أنت مالكها لإدارة أعمال الشحن البحري.", "Create your own workspace to manage your sea-freight business.")} />
+      <Title
+        title={t("إعداد مساحة شركتك", "Set up your company workspace")}
+        sub={t(
+          "أنشئ مساحة مستقلة تكون أنت مالكها لإدارة أعمال الشحن البحري.",
+          "Create your own workspace to manage your sea-freight business.",
+        )}
+      />
       <Card>
         {done || user?.account_type === "company" ? (
           <>
             <Icon name="checkmark-circle-outline" size={38} />
-            <Txt bold>{t("تم إعداد مساحة الشركة", "Company workspace is ready")}</Txt>
-            <Button title={t("فتح مساحة الشركة", "Open company workspace")} onPress={() => go({ name: "workspace" })} />
+            <Txt bold>
+              {t("تم إعداد مساحة الشركة", "Company workspace is ready")}
+            </Txt>
+            <Button
+              title={t("فتح مساحة الشركة", "Open company workspace")}
+              onPress={() => go({ name: "workspace" })}
+            />
           </>
         ) : (
           <>
-            <Txt muted>{t("لن يتم ضمك إلى شركة موجودة. سيتم إنشاء شركة ومساحة عمل جديدتين لهذا الحساب.", "You will not be added to an existing company. A new company and workspace will be created for this account.")}</Txt>
-            <Field title={t("اسم الشركة", "Company name")} value={companyName} set={setCompanyName} maxLength={255} />
-            <Field title={t("رمز الدولة (ISO)", "Country code (ISO)")} value={countryCode} set={setCountryCode} maxLength={2} />
-            <Field title={t("المدينة", "City")} value={city} set={setCity} maxLength={255} />
+            <Txt muted>
+              {t(
+                "لن يتم ضمك إلى شركة موجودة. سيتم إنشاء شركة ومساحة عمل جديدتين لهذا الحساب.",
+                "You will not be added to an existing company. A new company and workspace will be created for this account.",
+              )}
+            </Txt>
+            <Field
+              title={t("اسم الشركة", "Company name")}
+              value={companyName}
+              set={setCompanyName}
+              maxLength={255}
+            />
+            <Field
+              title={t("رمز الدولة (ISO)", "Country code (ISO)")}
+              value={countryCode}
+              set={setCountryCode}
+              maxLength={2}
+            />
+            <Field
+              title={t("المدينة", "City")}
+              value={city}
+              set={setCity}
+              maxLength={255}
+            />
             {error != null ? <ErrorBox error={error} /> : null}
-            <Button disabled={busy || !companyName.trim() || !/^[A-Za-z]{2}$/.test(countryCode)} title={busy ? t("جارٍ إنشاء المساحة…", "Creating workspace…") : t("إنشاء مساحة الشركة", "Create company workspace")} onPress={() => void submit()} />
-            <Button secondary disabled={busy} title={t("لاحقًا", "Do this later")} onPress={() => go({ name: "account" })} />
+            <Button
+              disabled={
+                busy ||
+                !companyName.trim() ||
+                !/^[A-Za-z]{2}$/.test(countryCode)
+              }
+              title={
+                busy
+                  ? t("جارٍ إنشاء المساحة…", "Creating workspace…")
+                  : t("إنشاء مساحة الشركة", "Create company workspace")
+              }
+              onPress={() => void submit()}
+            />
+            <Button
+              secondary
+              disabled={busy}
+              title={t("لاحقًا", "Do this later")}
+              onPress={() => go({ name: "account" })}
+            />
           </>
         )}
       </Card>
