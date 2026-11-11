@@ -684,8 +684,12 @@ export function CompanyOnboarding() {
         method: "POST",
         body: { company_name: companyName.trim(), country_code: countryCode.toUpperCase(), city: city.trim() || null },
       });
-      await refreshUser();
       setDone(true);
+      try {
+        await refreshUser();
+      } catch {
+        // The workspace creation succeeded; a profile refresh can be retried separately.
+      }
     } catch (e) {
       setError(e);
     } finally {
