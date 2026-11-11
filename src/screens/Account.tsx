@@ -1400,6 +1400,59 @@ export function PhoneVerification({ email, phone: initialPhone }: { email: strin
   );
 }
 
+export function CompanyOnboarding() {
+  const { api, t, user, refreshUser, go } = useApp();
+  const [companyName, setCompanyName] = useState("");
+  const [countryCode, setCountryCode] = useState("AE");
+  const [city, setCity] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<unknown>(null);
+  const [done, setDone] = useState(false);
+
+  async function submit() {
+    if (busy || !companyName.trim() || !/^[A-Za-z]{2}$/.test(countryCode)) return;
+    setBusy(true);
+    setError(null);
+    try {
+      await api.request("/company/onboarding", {
+        method: "POST",
+        body: { company_name: companyName.trim(), country_code: countryCode.toUpperCase(), city: city.trim() || null },
+      });
+      await refreshUser();
+      setDone(true);
+    } catch (e) {
+      setError(e);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <Screen>
+      <Title title={t("إعداد مساحة شركتك", "Set up your company workspace")} sub={t("أنشئ مساحة مستقلة تكون أنت مالكها لإدارة أعمال الشحن البحري.", "Create your own workspace to manage your sea-freight business.")} />
+      <Card>
+        {done || user?.account_type === "company" ? (
+          <>
+            <Icon name="checkmark-circle-outline" size={38} />
+            <Txt bold>{t("تم إعداد مساحة الشركة", "Company workspace is ready")}</Txt>
+            <Button title={t("فتح مساحة الشركة", "Open company workspace")} onPress={() => go({ name: "workspace" })} />
+          </>
+        ) : (
+          <>
+            <Txt muted>{t("لن يتم ضمك إلى شركة موجودة. سيتم إنشاء شركة ومساحة عمل جديدتين لهذا الحساب.", "You will not be added to an existing company. A new company and workspace will be created for this account.")}</Txt>
+            <Field title={t("اسم الشركة", "Company name")} value={companyName} set={setCompanyName} maxLength={255} />
+            <Field title={t("رمز الدولة (ISO)", "Country code (ISO)")} value={countryCode} set={setCountryCode} maxLength={2} />
+            <Field title={t("المدينة", "City")} value={city} set={setCity} maxLength={255} />
+            {error != null ? <ErrorBox error={error} /> : null}
+            <Button disabled={busy || !companyName.trim() || !/^[A-Za-z]{2}$/.test(countryCode)} title={busy ? t("جارٍ إنشاء المساحة…", "Creating workspace…") : t("إنشاء مساحة الشركة", "Create company workspace")} onPress={() => void submit()} />
+            <Button secondary disabled={busy} title={t("لاحقًا", "Do this later")} onPress={() => go({ name: "account" })} />
+          </>
+        )}
+      </Card>
+    </Screen>
+  );
+}
+
 export function ForgotPassword() {
   const { api, t } = useApp();
   const [email, setEmail] = useState(""),
