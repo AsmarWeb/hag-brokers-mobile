@@ -168,7 +168,7 @@ function Application() {
               setUser(me.data);
               setStack([!me.data.phone_verified
                 ? { name: "verify-phone", email: me.data.email, phone: me.data.phone ?? undefined }
-                : !me.data.company
+                : !me.data.company && !me.data.is_carrier
                   ? { name: "company-onboarding" }
                   : { name: "account" }]);
             }
@@ -241,7 +241,7 @@ function Application() {
     setRestoreError(null);
     setStack([!identity.phone_verified
       ? { name: "verify-phone", email: identity.email, phone: identity.phone ?? undefined }
-      : !identity.company
+      : !identity.company && !identity.is_carrier
         ? { name: "company-onboarding" }
         : { name: "account" }]);
   }
