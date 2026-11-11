@@ -266,6 +266,26 @@ export function Account() {
           </View>
         )}
       </View>
+      {user && !user.phone_verified ? (
+        <MenuGroup>
+          <MenuRow
+            icon="shield-checkmark-outline"
+            title={t("توثيق رقم الهاتف", "Verify phone number")}
+            sub={t("وثّق هاتفك لتأمين الحساب وفتح وظائف الشركة.", "Verify your phone to secure your account and unlock company features.")}
+            onPress={() => go({ name: "verify-phone", email: user.email, phone: user.phone ?? undefined })}
+          />
+        </MenuGroup>
+      ) : null}
+      {user && user.phone_verified && !user.company ? (
+        <MenuGroup>
+          <MenuRow
+            icon="business-outline"
+            title={t("إعداد مساحة الشركة", "Set up company workspace")}
+            sub={t("أكمل بيانات شركتك لإنشاء مساحة عمل تملكها.", "Add your company details to create a workspace you own.")}
+            onPress={() => go({ name: "company-onboarding" })}
+          />
+        </MenuGroup>
+      ) : null}
       {user?.company && (
         <>
           <GroupLabel title={t("أعمالك", "Your business")} />
