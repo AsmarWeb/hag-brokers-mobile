@@ -7,6 +7,7 @@ export type User = {
   phone_verified?: boolean;
   account_verified?: boolean;
   account_type: "individual" | "company";
+  is_carrier?: boolean;
   company: null | { workspace_id: number; role: string; status: string };
 };
 export type Listing = {
