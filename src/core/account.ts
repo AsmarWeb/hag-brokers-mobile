@@ -45,6 +45,8 @@ export function parseSession(raw: unknown): {
       typeof user.phone !== "string") ||
     (user.phone_verified !== undefined &&
       typeof user.phone_verified !== "boolean") ||
+    (user.phone_verification_required !== undefined &&
+      typeof user.phone_verification_required !== "boolean") ||
     (user.account_verified !== undefined &&
       typeof user.account_verified !== "boolean") ||
     !["company", "individual"].includes(user.account_type) ||
