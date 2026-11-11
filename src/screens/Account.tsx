@@ -276,7 +276,7 @@ export function Account() {
           />
         </MenuGroup>
       ) : null}
-      {user && user.phone_verified && !user.company ? (
+      {user && user.phone_verified && !user.company && !user.is_carrier ? (
         <MenuGroup>
           <MenuRow
             icon="business-outline"
