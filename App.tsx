@@ -170,7 +170,7 @@ function Application() {
                 ? { name: "account" }
                 : me.data.phone_verification_required && !me.data.phone_verified
                   ? { name: "verify-phone", email: me.data.email, phone: me.data.phone ?? undefined }
-                  : !me.data.company
+                  : me.data.phone_verification_required && !me.data.company
                   ? { name: "company-onboarding" }
                   : { name: "account" }]);
             }
@@ -245,7 +245,7 @@ function Application() {
       ? { name: "account" }
       : identity.phone_verification_required && !identity.phone_verified
         ? { name: "verify-phone", email: identity.email, phone: identity.phone ?? undefined }
-        : !identity.company
+        : identity.phone_verification_required && !identity.company
         ? { name: "company-onboarding" }
         : { name: "account" }]);
   }
