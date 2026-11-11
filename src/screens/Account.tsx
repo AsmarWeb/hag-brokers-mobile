@@ -1156,9 +1156,90 @@ export function Auth({ register = false }: { register?: boolean }) {
   );
 }
 
-export function PhoneVerification({
-  email,
-  phone,
+export function PhoneVerification({ email, phone: initialPhone }: { email: string; phone?: string }) {
+  const { api, t, go, user, refreshUser } = useApp();
+  const [phone, setPhone] = useState(initialPhone ?? user?.phone ?? "");
+  const [countryCode, setCountryCode] = useState("AE");
+  const [code, setCode] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [requested, setRequested] = useState(false);
+  const [notice, setNotice] = useState("");
+  const [error, setError] = useState<unknown>(null);
+
+  async function sendCode() {
+    if (busy || !user || !phone.trim()) return;
+    setBusy(true);
+    setError(null);
+    setNotice("");
+    try {
+      await api.request("/auth/phone", { method: "PUT", body: { phone: phone.trim(), phone_country_code: countryCode } });
+      const result = await api.request<{ data?: { verification_sent?: boolean } }>("/auth/phone-verification", { method: "POST" });
+      setRequested(true);
+      setNotice(result.data?.verification_sent ? t("أرسلنا رمز التحقق إلى رقمك.", "A verification code was sent to your phone.") : t("تعذر إرسال الرمز الآن. انتظر مهلة الإرسال ثم حاول مجددًا.", "We could not send the code right now. Wait for the resend cooldown and try again."));
+    } catch (e) {
+      setError(e);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function confirmCode() {
+    if (busy || code.length !== 6 || !user) return;
+    setBusy(true);
+    setError(null);
+    setNotice("");
+    try {
+      const result = await api.request<{ data?: { phone_verified?: boolean } }>("/auth/verify-phone", { method: "POST", body: { code } });
+      if (result.data?.phone_verified !== true) throw new ApiError(502);
+      setCode("");
+      setNotice(t("تم توثيق رقم الهاتف. يمكنك الآن إعداد مساحة شركتك.", "Your phone is verified. You can now set up your company workspace."));
+      await refreshUser();
+    } catch (e) {
+      setError(e);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <Screen>
+      <Title title={t("توثيق رقم الهاتف", "Verify your phone number")} sub={t("هذه الخطوة تأتي بعد تسجيل الدخول لحماية حسابك.", "This step happens after sign-in to protect your account.")} />
+      <Card>
+        <Icon name="shield-checkmark-outline" size={38} />
+        {!user ? (
+          <>
+            <Txt bold size={17}>{t("تحقق من بريدك الإلكتروني أولاً", "Verify your email first")}</Txt>
+            <Txt muted>{t("أرسلنا رابط التوثيق إلى بريدك. افتح الرابط ثم سجّل الدخول لإضافة رقم هاتفك وتوثيقه.", "We sent a verification link to your email. Open it, then sign in to add and verify your phone number.")}</Txt>
+            <Txt bold>{email}</Txt>
+            <Button title={t("العودة إلى تسجيل الدخول", "Back to sign in")} onPress={() => go({ name: "auth" })} />
+          </>
+        ) : user.phone_verified ? (
+          <>
+            <Txt bold>{t("رقم الهاتف موثّق", "Phone verified")}</Txt>
+            <Txt muted>{t("يمكنك متابعة إعداد مساحة شركتك من حسابك.", "Continue company setup from your account.")}</Txt>
+            <Button title={t("متابعة", "Continue")} onPress={() => go({ name: "account" })} />
+          </>
+        ) : (
+          <>
+            <Txt muted>{t("أدخل رقمك بصيغة دولية أو رقمًا محليًا مع اختيار الدولة.", "Enter your number in international format or a local number with its country selected.")}</Txt>
+            <Field title={t("الدولة (رمز ISO)", "Country (ISO code)")} value={countryCode} set={setCountryCode} />
+            <Field title={t("رقم الهاتف", "Phone number")} value={phone} set={setPhone} />
+            {!requested ? (
+              <Button disabled={busy || !phone.trim() || !/^[A-Z]{2}$/.test(countryCode)} title={busy ? t("جارٍ الإرسال…", "Sending…") : t("حفظ الرقم وإرسال الرمز", "Save number and send code")} onPress={() => void sendCode()} />
+            ) : (
+              <>
+                <Field title={t("رمز التحقق المكون من 6 أرقام", "6-digit verification code")} value={code} set={(value) => setCode(value.replace(/\D/g, "").slice(0, 6))} numeric maxLength={6} />
+                <Button disabled={busy || code.length !== 6} title={busy ? t("جارٍ التحقق…", "Verifying…") : t("تأكيد الهاتف", "Verify phone")} onPress={() => void confirmCode()} />
+                <Button secondary disabled={busy} title={t("إعادة إرسال الرمز", "Resend code")} onPress={() => { setRequested(false); void sendCode(); }} />
+              </>
+            )}
+          </>
+        )}
+        {notice ? <Txt>{notice}</Txt> : null}
+        {error != null ? <ErrorBox error={error} /> : null}
+      </Card>
+    </Screen>
+  );
 }: {
   email: string;
   phone?: string;
