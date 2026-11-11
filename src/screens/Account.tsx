@@ -577,6 +577,7 @@ export function PhoneVerification({ email, phone: initialPhone }: { email: strin
     try {
       await api.request("/auth/phone", { method: "PUT", body: { phone: phone.trim(), phone_country_code: countryCode } });
       const result = await api.request<{ data?: { verification_sent?: boolean } }>("/auth/phone-verification", { method: "POST" });
+      await refreshUser();
       setRequested(true);
       setNotice(result.data?.verification_sent ? t("أرسلنا رمز التحقق إلى رقمك.", "A verification code was sent to your phone.") : t("تعذر إرسال الرمز الآن. انتظر مهلة الإرسال ثم حاول مجددًا.", "We could not send the code right now. Wait for the resend cooldown and try again."));
     } catch (e) {
