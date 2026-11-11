@@ -5,9 +5,6 @@ import {
   Pressable,
   View,
   Text,
-  Modal,
-  FlatList,
-  TextInput,
 } from "react-native";
 import {
   Badge,
@@ -30,7 +27,6 @@ import { ApiError } from "../core/api";
 import { isCompanyLeader, parseSession } from "../core/account";
 import { validateAuth, authFieldMessage } from "../core/authValidation";
 import { label } from "../core/labels";
-import { PHONE_COUNTRIES, phoneCountryFlag } from "../core/phoneCountries";
 
 function MenuRow({
   title,
