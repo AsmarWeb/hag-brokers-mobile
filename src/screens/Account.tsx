@@ -757,7 +757,7 @@ export function PhoneVerification({ email, phone: initialPhone }: { email: strin
       </Card>
     </Screen>
   );
-
+}
 
 export function CompanyOnboarding() {
   const { api, t, user, refreshUser, go } = useApp();
