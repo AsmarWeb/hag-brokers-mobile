@@ -821,8 +821,6 @@ export function SecuritySettings() {
     try {
       await api.request("/auth/phone-verification", {
         method: "POST",
-        auth: false,
-        body: { email: user.email },
       });
       setPhoneRequested(true);
       setNotice(
@@ -852,8 +850,7 @@ export function SecuritySettings() {
         };
       }>("/auth/verify-phone", {
         method: "POST",
-        auth: false,
-        body: { email: user.email, code: phoneCode },
+        body: { code: phoneCode },
       });
 
       if (result.data?.phone_verified !== true) throw new ApiError(502);
