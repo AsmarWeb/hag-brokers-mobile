@@ -14,90 +14,30 @@ const form: AuthForm = {
   email: "owner@example.test",
   password: "A-strong-password12",
   confirmation: "A-strong-password12",
-  company: true,
-  business: "UAE Trade",
-  phone: "501234567",
-  phoneCountryCode: "AE",
-  country: "AE",
 };
 const json = (data: unknown, status = 200) =>
   new Response(JSON.stringify(data), {
     status,
     headers: { "content-type": "application/json" },
   });
-test("registration identifies the exact invalid fields instead of a plan quota error", () => {
+test("personal registration validates only name email password and confirmation", () => {
+  assert.deepEqual(validateAuth(form, true, true), {});
   const errors = validateAuth(
-    {
-      ...form,
-      password: "short",
-      confirmation: "different",
-      phone: "",
-      country: "الإمارات",
-    },
+    { ...form, name: "", email: "invalid", password: "short", confirmation: "different" },
     true,
     true,
   );
   assert.deepEqual(
     Object.keys(errors).sort(),
-    ["password", "password_confirmation", "phone", "country_code"].sort(),
+    ["name", "email", "password", "password_confirmation"].sort(),
   );
-  assert.match(errors.password[0], /12/);
-  assert.match(errors.country_code[0], /AE/);
-  assert.doesNotMatch(JSON.stringify(errors), /quota|حصة|خطة/);
 });
-test("valid company and individual forms match the server minimum requirements", () => {
-  assert.deepEqual(validateAuth(form, true, true), {});
+test("sign in does not require company or phone fields", () => {
   assert.deepEqual(
-    validateAuth(
-      { ...form, company: false, business: "", country: "" },
-      true,
-      false,
-    ),
-    {},
-  );
-  assert.deepEqual(
-    validateAuth(
-      {
-        ...form,
-        password: "old-pass",
-        confirmation: "",
-        name: "",
-        business: "",
-        company: false,
-      },
-      false,
-      true,
-    ),
+    validateAuth({ ...form, name: "", confirmation: "" }, false, false),
     {},
   );
 });
-test("individual registration requires a valid local phone number and country", () => {
-  assert.ok(
-    validateAuth(
-      { ...form, company: false, business: "", phone: "" },
-      true,
-      false,
-    ).phone,
-  );
-
-  assert.ok(
-    validateAuth(
-      { ...form, company: false, business: "", phone: "123" },
-      true,
-      false,
-    ).phone,
-  );
-
-  assert.deepEqual(
-    validateAuth(
-      { ...form, company: false, business: "", phone: "0501234567" },
-      true,
-      false,
-    ),
-    {},
-  );
-});
-
 test("unicode passwords count characters consistently and server email conflicts are understandable", () => {
   const errors = validateAuth(
     { ...form, password: "🚢".repeat(6), confirmation: "🚢".repeat(6) },
@@ -107,7 +47,7 @@ test("unicode passwords count characters consistently and server email conflicts
   assert.ok(errors.password);
   assert.deepEqual(
     validateAuth(
-      { ...form, password: "🚢".repeat(12), confirmation: "🚢".repeat(12) },
+      { ...form, password: "🚢".repeat(8), confirmation: "🚢".repeat(8) },
       true,
       true,
     ),
