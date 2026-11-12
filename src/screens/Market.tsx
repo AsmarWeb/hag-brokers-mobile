@@ -189,6 +189,248 @@ export function Market() {
           </View>
         </BrandImage>
       </View>
+      {/* HAG_SEA_FREIGHT_HOME_SECTION */}
+      <View
+        style={{
+          marginBottom: 20,
+          padding: 18,
+          borderRadius: 24,
+          overflow: "hidden",
+          backgroundColor: "#102D43",
+          borderWidth: 1,
+          borderColor: "#B9955B",
+          elevation: 3,
+        }}
+      >
+        <View
+          style={{
+            flexDirection: ar ? "row-reverse" : "row",
+            alignItems: "center",
+            gap: 12,
+          }}
+        >
+          <View
+            style={{
+              width: 54,
+              height: 54,
+              borderRadius: 18,
+              alignItems: "center",
+              justifyContent: "center",
+              backgroundColor: "rgba(217,184,121,0.16)",
+              borderWidth: 1,
+              borderColor: "rgba(217,184,121,0.35)",
+            }}
+          >
+            <Icon name="boat-outline" size={29} color="#D9B879" />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text
+              style={{
+                color: "#D9B879",
+                fontSize: 10,
+                fontWeight: "700",
+                letterSpacing: 1.5,
+                textAlign: ar ? "right" : "left",
+              }}
+            >
+              HAG BROKERS · SEA FREIGHT
+            </Text>
+            <Text
+              style={{
+                color: "#FFFFFF",
+                fontSize: 21,
+                fontWeight: "700",
+                marginTop: 5,
+                textAlign: ar ? "right" : "left",
+              }}
+            >
+              {t("الشحن البحري", "Sea Freight")}
+            </Text>
+          </View>
+        </View>
+
+        <Text
+          style={{
+            color: "#E5EDF2",
+            fontSize: 13,
+            lineHeight: 22,
+            marginTop: 15,
+            textAlign: ar ? "right" : "left",
+          }}
+        >
+          {t(
+            "أرسل تفاصيل شحنتك وموانئ الانطلاق والوصول، وسيتولى فريق HAG مراجعة طلبك ومتابعته.",
+            "Submit your shipment details and ports of origin and destination. The HAG team will review and follow up on your request.",
+          )}
+        </Text>
+
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={t(
+            "اطلب عرض سعر للشحن البحري",
+            "Request a sea freight quote",
+          )}
+          onPress={() => go({ name: "freight-create" })}
+          style={({ pressed }) => ({
+            minHeight: 51,
+            marginTop: 18,
+            paddingHorizontal: 15,
+            borderRadius: 14,
+            backgroundColor: "#D9B879",
+            flexDirection: ar ? "row-reverse" : "row",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 9,
+            opacity: pressed ? 0.78 : 1,
+          })}
+        >
+          <Icon name="document-text-outline" size={19} color="#102D43" />
+          <Text
+            style={{
+              color: "#102D43",
+              fontSize: 14,
+              fontWeight: "800",
+            }}
+          >
+            {t("اطلب عرض سعر الآن", "Request a Quote")}
+          </Text>
+          <Icon
+            name={ar ? "arrow-back" : "arrow-forward"}
+            size={18}
+            color="#102D43"
+          />
+        </Pressable>
+
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={t("متابعة طلبات الشحن", "Track freight requests")}
+          onPress={() => go({ name: "freight" })}
+          style={({ pressed }) => ({
+            minHeight: 45,
+            marginTop: 7,
+            paddingHorizontal: 12,
+            borderRadius: 12,
+            flexDirection: ar ? "row-reverse" : "row",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 8,
+            opacity: pressed ? 0.7 : 1,
+          })}
+        >
+          <Icon name="list-outline" size={18} color="#F2DEB5" />
+          <Text
+            style={{
+              color: "#F2DEB5",
+              fontSize: 13,
+              fontWeight: "600",
+            }}
+          >
+            {t("متابعة طلباتي", "Track My Requests")}
+          </Text>
+        </Pressable>
+
+        <Text
+          style={{
+            color: "#B9C9D4",
+            fontSize: 10,
+            lineHeight: 17,
+            marginTop: 5,
+            textAlign: "center",
+          }}
+        >
+          {t(
+            "إرسال الطلب لا يعني تأكيد السعر أو حجز الشحنة.",
+            "Submitting a request does not confirm a price or shipping booking.",
+          )}
+        </Text>
+      </View>
+
+      {/* HAG_FREIGHT_HOW_IT_WORKS */}
+      <View
+        style={{
+          marginBottom: 20,
+          padding: 16,
+          borderRadius: 20,
+          borderWidth: 1,
+          borderColor: c.line,
+          backgroundColor: c.panel,
+        }}
+      >
+        <Txt bold size={18}>
+          {t("كيف تعمل HAG؟", "How HAG works")}
+        </Txt>
+        <Txt muted size={12} style={{ marginTop: 4 }}>
+          {t(
+            "ثلاث خطوات بسيطة لمتابعة احتياجات الشحن البحري.",
+            "Three simple steps to manage your sea freight request.",
+          )}
+        </Txt>
+
+        <View style={{ marginTop: 16, gap: 15 }}>
+          {[
+            {
+              icon: "document-text-outline" as const,
+              title: t("أرسل طلب الشحن", "Submit your request"),
+              body: t(
+                "أدخل تفاصيل الشحنة وموانئ الانطلاق والوصول.",
+                "Enter your cargo details and origin and destination ports.",
+              ),
+            },
+            {
+              icon: "search-outline" as const,
+              title: t("مراجعة فريق HAG", "HAG team review"),
+              body: t(
+                "يراجع فريق HAG بيانات طلبك ويتابع معك.",
+                "The HAG team reviews your request and follows up with you.",
+              ),
+            },
+            {
+              icon: "list-outline" as const,
+              title: t("تابع حالة طلبك", "Track your request"),
+              body: t(
+                "ارجع إلى طلبات الشحن لمتابعة آخر حالة مسجلة.",
+                "Visit your freight requests to check the latest recorded status.",
+              ),
+            },
+          ].map((step, index) => (
+            <View
+              key={index}
+              style={{
+                flexDirection: ar ? "row-reverse" : "row",
+                alignItems: "center",
+                gap: 12,
+              }}
+            >
+              <View
+                style={{
+                  width: 42,
+                  height: 42,
+                  borderRadius: 14,
+                  alignItems: "center",
+                  justifyContent: "center",
+                  backgroundColor: c.soft,
+                  borderWidth: 1,
+                  borderColor: c.line,
+                }}
+              >
+                <Icon name={step.icon} size={21} color={c.gold} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Txt bold size={13}>
+                  {step.title}
+                </Txt>
+                <Txt muted size={11} style={{ marginTop: 2 }}>
+                  {step.body}
+                </Txt>
+              </View>
+              <Txt muted size={12}>
+                {String(index + 1).padStart(2, "0")}
+              </Txt>
+            </View>
+          ))}
+        </View>
+      </View>
+
       <View
         style={{
           flexDirection: ar ? "row-reverse" : "row",
@@ -261,7 +503,7 @@ export function Market() {
           <Row between>
             <View style={{ flex: 1 }}>
               <Txt bold size={20}>
-                {t("استكشف المجالات", "Explore business sectors")}
+                {t("السوق التجاري", "Business Marketplace")}
               </Txt>
               <Txt muted size={12} style={{ marginTop: 4 }}>
                 {t(
