@@ -1,6 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
+  hasCompletedPhoneSetup,
   isCompanyLeader,
   noticeTarget,
   parseSession,
@@ -163,6 +164,37 @@ test("session accepts optional phone verification fields and preserves legacy se
   assert.equal(verified.user.phone, "+971501234567");
   assert.equal(verified.user.phone_verified, true);
   assert.equal(verified.user.account_verified, true);
+});
+
+test("phone setup state supports current and legacy sessions safely", () => {
+  assert.equal(hasCompletedPhoneSetup(user), false);
+
+  assert.equal(
+    hasCompletedPhoneSetup({
+      ...user,
+      phone_verification_required: false,
+    }),
+    true,
+  );
+
+  assert.equal(
+    hasCompletedPhoneSetup({
+      ...user,
+      phone_verification_required: true,
+    }),
+    false,
+  );
+
+  assert.equal(
+    hasCompletedPhoneSetup({
+      ...user,
+      phone_verification_required: true,
+      phone_setup_completed: true,
+    }),
+    true,
+  );
+
+  assert.equal(hasCompletedPhoneSetup(null), false);
 });
 
 test("session rejects malformed phone verification fields", () => {

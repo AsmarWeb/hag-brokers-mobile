@@ -6,6 +6,7 @@ export type User = {
   phone?: string | null;
   phone_verified?: boolean;
   phone_verification_required?: boolean;
+  phone_setup_completed?: boolean;
   account_verified?: boolean;
   account_type: "individual" | "company";
   is_carrier?: boolean;

@@ -361,15 +361,17 @@ test("phone verification accepts the documented successful response", async () =
   const api = new ApiClient(origin, (async () =>
     json({
       data: {
-        phone_verified: true,
-        email_verified: false,
-        account_verified: false,
+        phone_verified: false,
+        phone_setup_completed: true,
+        email_verified: true,
+        account_verified: true,
       },
     })) as typeof fetch);
 
   const result = await api.request<{
     data: {
       phone_verified: boolean;
+      phone_setup_completed: boolean;
       email_verified: boolean;
       account_verified: boolean;
     };
@@ -379,9 +381,10 @@ test("phone verification accepts the documented successful response", async () =
     body: { email: "owner@example.test", code: "123456" },
   });
 
-  assert.equal(result.data.phone_verified, true);
-  assert.equal(result.data.email_verified, false);
-  assert.equal(result.data.account_verified, false);
+  assert.equal(result.data.phone_verified, false);
+  assert.equal(result.data.phone_setup_completed, true);
+  assert.equal(result.data.email_verified, true);
+  assert.equal(result.data.account_verified, true);
 });
 
 test("message-only response exception is restricted to phone OTP resend", async () => {

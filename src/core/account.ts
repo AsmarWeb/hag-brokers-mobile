@@ -7,6 +7,20 @@ export function isCompanyLeader(user: User | null): boolean {
     ["owner", "manager"].includes(user.company.role)
   );
 }
+
+export function hasCompletedPhoneSetup(user: User | null): boolean {
+  if (!user) return false;
+
+  if (typeof user.phone_setup_completed === "boolean") {
+    return user.phone_setup_completed;
+  }
+
+  if (typeof user.phone_verification_required === "boolean") {
+    return !user.phone_verification_required;
+  }
+
+  return false;
+}
 export function noticeTarget(
   notice: Notice,
 ): { name: "room" | "offer" | "manage"; id: number } | null {
@@ -47,6 +61,8 @@ export function parseSession(raw: unknown): {
       typeof user.phone_verified !== "boolean") ||
     (user.phone_verification_required !== undefined &&
       typeof user.phone_verification_required !== "boolean") ||
+    (user.phone_setup_completed !== undefined &&
+      typeof user.phone_setup_completed !== "boolean") ||
     (user.account_verified !== undefined &&
       typeof user.account_verified !== "boolean") ||
     !["company", "individual"].includes(user.account_type) ||
