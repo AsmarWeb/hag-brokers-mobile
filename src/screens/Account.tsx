@@ -18,7 +18,11 @@ import {
 } from "../ui";
 import { nativeSecureStorage, deviceName } from "../core/vault";
 import { ApiError } from "../core/api";
-import { hasCompletedPhoneSetup, isCompanyLeader, parseSession } from "../core/account";
+import {
+  hasCompletedPhoneSetup,
+  isCompanyLeader,
+  parseSession,
+} from "../core/account";
 import { validateAuth, authFieldMessage } from "../core/authValidation";
 import { label } from "../core/labels";
 
@@ -866,10 +870,9 @@ export function PhoneVerification({
     setError(null);
     setNotice("");
     try {
-      const result = await api.request<{ data?: { phone_verified?: boolean; phone_setup_completed?: boolean } }>(
-        "/auth/verify-phone",
-        { method: "POST", body: { code } },
-      );
+      const result = await api.request<{
+        data?: { phone_verified?: boolean; phone_setup_completed?: boolean };
+      }>("/auth/verify-phone", { method: "POST", body: { code } });
       if (result.data?.phone_setup_completed !== true) throw new ApiError(502);
       setCode("");
       setNotice(
@@ -916,7 +919,12 @@ export function PhoneVerification({
           </>
         ) : hasCompletedPhoneSetup(user) ? (
           <>
-            <Txt bold>{t("اكتملت خطوة تأكيد الرقم عبر البريد", "Phone step completed via email")}</Txt>
+            <Txt bold>
+              {t(
+                "اكتملت خطوة تأكيد الرقم عبر البريد",
+                "Phone step completed via email",
+              )}
+            </Txt>
             <Txt muted>
               {t(
                 "يمكنك متابعة إعداد مساحة شركتك من حسابك.",
@@ -1266,7 +1274,10 @@ export function SecuritySettings() {
       setPhoneCode("");
       setPhoneRequested(false);
       setNotice(
-        t("اكتملت خطوة تأكيد الرقم عبر البريد الإلكتروني. هذا لا يثبت ملكية رقم الهاتف.", "The phone confirmation step was completed using email. This does not prove phone-number ownership."),
+        t(
+          "اكتملت خطوة تأكيد الرقم عبر البريد الإلكتروني. هذا لا يثبت ملكية رقم الهاتف.",
+          "The phone confirmation step was completed using email. This does not prove phone-number ownership.",
+        ),
       );
     } catch (e) {
       setError(e);
@@ -1339,7 +1350,10 @@ export function SecuritySettings() {
           />
           <Txt bold>
             {hasCompletedPhoneSetup(user)
-              ? t("اكتملت خطوة تأكيد الرقم عبر البريد", "Phone step completed via email")
+              ? t(
+                  "اكتملت خطوة تأكيد الرقم عبر البريد",
+                  "Phone step completed via email",
+                )
               : t("إكمال خطوة تأكيد الهاتف", "Complete phone confirmation")}
           </Txt>
         </Row>
@@ -1379,7 +1393,7 @@ export function SecuritySettings() {
                     />
                     <Button
                       disabled={busy || phoneCode.length !== 6}
-                      title={t("تأكيد رقم الهاتف", "Complete confirmation number")}
+                      title={t("تأكيد رقم الهاتف", "Complete phone setup")}
                       onPress={() => void confirmPhoneCode()}
                     />
                     <Button
