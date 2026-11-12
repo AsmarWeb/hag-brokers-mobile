@@ -92,6 +92,7 @@ export function Market() {
   const sectors = (catalog.data?.data.categories ?? []).filter(
     (v) => !config.categories.length || config.categories.includes(v),
   );
+  const categoryCards = config.category_cards;
   function refresh() {
     q.reload();
     catalog.reload();
@@ -123,6 +124,8 @@ export function Market() {
             height: 46,
             borderRadius: 23,
             backgroundColor: c.soft,
+            borderWidth: 1,
+            borderColor: c.line,
             alignItems: "center",
             justifyContent: "center",
           }}
@@ -136,15 +139,18 @@ export function Market() {
           marginBottom: 18,
           borderRadius: 24,
           overflow: "hidden",
+          borderWidth: 1,
+          borderColor: c.line,
+          elevation: 3,
         }}
       >
-        <BrandImage uri={config.home_image} height={265}>
+        <BrandImage uri={config.home_image} height={245}>
           <View
             style={{
               flex: 1,
               justifyContent: "flex-end",
-              padding: 20,
-              backgroundColor: "rgba(2,24,38,0.27)",
+              padding: 22,
+              backgroundColor: "rgba(2,24,38,0.38)",
             }}
           >
             <Text
@@ -188,14 +194,16 @@ export function Market() {
           flexDirection: ar ? "row-reverse" : "row",
           alignItems: "center",
           backgroundColor: c.panel,
-          borderRadius: 18,
+          borderRadius: 19,
           borderWidth: 1,
           borderColor: c.line,
-          paddingHorizontal: 14,
+          paddingHorizontal: 10,
+          paddingVertical: 6,
           gap: 10,
+          elevation: 2,
         }}
       >
-        <Icon name="search-outline" />
+        <Icon name="search-outline" size={22} color={c.gold} />
         <TextInput
           accessibilityLabel={t("البحث في الفرص", "Search opportunities")}
           placeholder={t("عن أي فرصة تبحث؟", "What are you looking for?")}
@@ -209,8 +217,9 @@ export function Market() {
             flex: 1,
             color: c.text,
             textAlign: ar ? "right" : "left",
-            minHeight: 54,
+            minHeight: 50,
             fontSize: 14,
+            paddingVertical: 8,
           }}
         />
         <Pressable
@@ -220,11 +229,17 @@ export function Market() {
           style={{
             minHeight: 44,
             minWidth: 44,
+            borderRadius: 13,
+            backgroundColor: "#D9B879",
             alignItems: "center",
             justifyContent: "center",
           }}
         >
-          <Icon name={ar ? "arrow-back" : "arrow-forward"} />
+          <Icon
+            name={ar ? "arrow-back" : "arrow-forward"}
+            color="#102033"
+            size={20}
+          />
         </Pressable>
       </View>
       {(ar ? config.announcement_ar : config.announcement_en) ? (
@@ -241,41 +256,213 @@ export function Market() {
           </Txt>
         </View>
       ) : null}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={{ marginVertical: 20 }}
-        contentContainerStyle={{
-          gap: 10,
-          flexDirection: ar ? "row-reverse" : "row",
-        }}
-      >
-        {["", ...sectors].map((v) => (
-          <Pressable
-            key={v}
-            accessibilityRole="button"
-            accessibilityState={{ selected: category === v }}
-            onPress={() => {
-              setCategory(v);
-              setPage(1);
-            }}
-            style={{
-              alignItems: "center",
-              padding: 12,
-              minWidth: 86,
-              maxWidth: 135,
-              borderRadius: 18,
-              backgroundColor: category === v ? c.soft : c.panel,
-              borderWidth: 1,
-              borderColor: category === v ? c.gold : c.line,
-              gap: 8,
+      {categoryCards.length > 0 && (
+        <View style={{ marginTop: 24, marginBottom: 8 }}>
+          <Row between>
+            <View style={{ flex: 1 }}>
+              <Txt bold size={20}>
+                {t("استكشف المجالات", "Explore business sectors")}
+              </Txt>
+              <Txt muted size={12} style={{ marginTop: 4 }}>
+                {t(
+                  "اكتشف المنتجات والفرص حسب مجال عملك",
+                  "Discover products and opportunities by sector",
+                )}
+              </Txt>
+            </View>
+            {category !== "" && (
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => {
+                  setCategory("");
+                  setPage(1);
+                }}
+                style={{ padding: 8 }}
+              >
+                <Txt size={12} style={{ color: c.gold }}>
+                  {t("عرض الكل", "View all")}
+                </Txt>
+              </Pressable>
+            )}
+          </Row>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={{ marginTop: 14 }}
+            contentContainerStyle={{
+              gap: 14,
+              flexDirection: ar ? "row-reverse" : "row",
+              paddingBottom: 8,
             }}
           >
-            <Icon name={sectorIcons[v] ?? "grid-outline"} size={25} />
-            <Txt size={11}>{v ? label(v, ar) : t("الكل", "All")}</Txt>
-          </Pressable>
-        ))}
-      </ScrollView>
+            {categoryCards.map((item) => {
+              const selected = category === item.code;
+              const title =
+                (ar ? item.title_ar : item.title_en) || label(item.code, ar);
+              const description = ar
+                ? item.description_ar
+                : item.description_en;
+
+              return (
+                <Pressable
+                  key={item.code}
+                  accessibilityRole="button"
+                  accessibilityLabel={title}
+                  accessibilityState={{ selected }}
+                  onPress={() => {
+                    setCategory(selected ? "" : item.code);
+                    setPage(1);
+                  }}
+                  style={{
+                    width: 258,
+                    height: 190,
+                    borderRadius: 22,
+                    overflow: "hidden",
+                    backgroundColor: "#102D43",
+                    borderWidth: selected ? 2 : 1,
+                    borderColor: selected ? c.gold : c.line,
+                  }}
+                >
+                  {item.image ? (
+                    <Image
+                      source={{ uri: item.image }}
+                      resizeMode="cover"
+                      style={{
+                        position: "absolute",
+                        width: "100%",
+                        height: "100%",
+                      }}
+                    />
+                  ) : (
+                    <View
+                      style={{
+                        position: "absolute",
+                        width: "100%",
+                        height: "100%",
+                        alignItems: "center",
+                        justifyContent: "center",
+                      }}
+                    >
+                      <Icon
+                        name={sectorIcons[item.code] ?? "grid-outline"}
+                        size={62}
+                        color="#D9B879"
+                      />
+                    </View>
+                  )}
+                  <View
+                    style={{
+                      flex: 1,
+                      justifyContent: "flex-end",
+                      padding: 15,
+                      backgroundColor: "rgba(3,20,33,0.55)",
+                    }}
+                  >
+                    {item.featured && (
+                      <View
+                        style={{
+                          alignSelf: ar ? "flex-end" : "flex-start",
+                          backgroundColor: "#D9B879",
+                          paddingHorizontal: 9,
+                          paddingVertical: 4,
+                          borderRadius: 20,
+                          marginBottom: 8,
+                        }}
+                      >
+                        <Text
+                          style={{
+                            color: "#102D43",
+                            fontSize: 10,
+                            fontWeight: "700",
+                          }}
+                        >
+                          {t("مميز", "FEATURED")}
+                        </Text>
+                      </View>
+                    )}
+                    <Text
+                      numberOfLines={1}
+                      style={{
+                        color: "white",
+                        fontSize: 19,
+                        fontWeight: "700",
+                        textAlign: ar ? "right" : "left",
+                      }}
+                    >
+                      {title}
+                    </Text>
+                    {!!description && (
+                      <Text
+                        numberOfLines={2}
+                        style={{
+                          color: "#EAF1F4",
+                          fontSize: 12,
+                          lineHeight: 18,
+                          marginTop: 5,
+                          textAlign: ar ? "right" : "left",
+                        }}
+                      >
+                        {description}
+                      </Text>
+                    )}
+                    <Text
+                      style={{
+                        color: "#F2DEB5",
+                        fontSize: 11,
+                        fontWeight: "600",
+                        marginTop: 8,
+                        textAlign: ar ? "right" : "left",
+                      }}
+                    >
+                      {selected
+                        ? t("المجال المحدد", "Selected sector")
+                        : t("استكشف الفرص", "Explore opportunities")}
+                    </Text>
+                  </View>
+                </Pressable>
+              );
+            })}
+          </ScrollView>
+        </View>
+      )}
+
+      {categoryCards.length === 0 && (
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={{ marginVertical: 20 }}
+          contentContainerStyle={{
+            gap: 10,
+            flexDirection: ar ? "row-reverse" : "row",
+          }}
+        >
+          {["", ...sectors].map((v) => (
+            <Pressable
+              key={v}
+              accessibilityRole="button"
+              accessibilityState={{ selected: category === v }}
+              onPress={() => {
+                setCategory(v);
+                setPage(1);
+              }}
+              style={{
+                alignItems: "center",
+                padding: 12,
+                minWidth: 86,
+                maxWidth: 135,
+                borderRadius: 18,
+                backgroundColor: category === v ? c.soft : c.panel,
+                borderWidth: 1,
+                borderColor: category === v ? c.gold : c.line,
+                gap: 8,
+              }}
+            >
+              <Icon name={sectorIcons[v] ?? "grid-outline"} size={25} />
+              <Txt size={11}>{v ? label(v, ar) : t("الكل", "All")}</Txt>
+            </Pressable>
+          ))}
+        </ScrollView>
+      )}
       {config.show_marine &&
         !category &&
         !term &&
@@ -362,28 +549,56 @@ export function Market() {
             ))}
           </View>
           {q.data?.data.length === 0 && (
-            <Card>
-              <Icon name="search-outline" size={35} />
-              <Txt bold size={18}>
-                {t("فرصتك القادمة في الطريق", "Your next opportunity awaits")}
+            <View
+              style={{
+                marginTop: 8,
+                marginBottom: 18,
+                padding: 22,
+                borderRadius: 24,
+                borderWidth: 1,
+                borderColor: c.line,
+                backgroundColor: c.panel,
+                overflow: "hidden",
+              }}
+            >
+              <View
+                style={{
+                  width: 54,
+                  height: 54,
+                  borderRadius: 18,
+                  alignItems: "center",
+                  justifyContent: "center",
+                  backgroundColor: c.soft,
+                  marginBottom: 16,
+                }}
+              >
+                <Icon name="compass-outline" size={29} color={c.gold} />
+              </View>
+              <Txt bold size={19}>
+                {t("اكتشف المزيد من المجالات", "Discover more sectors")}
               </Txt>
-              <Txt muted>
+              <Txt muted style={{ marginTop: 8, lineHeight: 22 }}>
                 {t(
-                  "لا توجد نتائج مطابقة. غيّر القطاع أو جرّب بحثًا آخر.",
-                  "No matches yet. Try another sector or search.",
+                  "لا توجد فرص منشورة ضمن هذا الاختيار حالياً. استكشف المجالات الأخرى أو اعرض جميع الفرص.",
+                  "There are no published opportunities in this selection right now. Explore other sectors or browse all opportunities.",
                 )}
               </Txt>
-              <Button
-                secondary
-                title={t("مسح البحث", "Clear search")}
-                onPress={() => {
-                  setSearch("");
-                  setTerm("");
-                  setCategory("");
-                  setPage(1);
-                }}
-              />
-            </Card>
+              <View style={{ marginTop: 18 }}>
+                <Button
+                  secondary
+                  title={t(
+                    "استكشاف جميع المجالات والفرص",
+                    "Explore all sectors & opportunities",
+                  )}
+                  onPress={() => {
+                    setSearch("");
+                    setTerm("");
+                    setCategory("");
+                    setPage(1);
+                  }}
+                />
+              </View>
+            </View>
           )}
           <Row between>
             {page > 1 && (
@@ -418,60 +633,168 @@ export function ListingCard({
   const { api, t, ar, c } = useApp();
   const src = o.media.find((m) => m.type === "image");
   const url = src && safeMedia(api.origin, src.url);
+  const location = [o.city, o.country].filter(Boolean).join(" · ");
+
   return (
     <Card onPress={onPress}>
-      {url ? (
-        <Image
-          source={{ uri: url }}
-          style={{
-            height: compact ? 140 : 235,
-            borderRadius: 18,
-            marginBottom: 12,
-          }}
-          accessibilityLabel={o.title}
-        />
-      ) : (
+      <View
+        style={{
+          height: compact ? 148 : 218,
+          borderRadius: 16,
+          overflow: "hidden",
+          backgroundColor: "#102D43",
+          marginBottom: 14,
+          position: "relative",
+        }}
+      >
+        {url ? (
+          <Image
+            source={{ uri: url }}
+            resizeMode="cover"
+            style={{ width: "100%", height: "100%" }}
+            accessibilityLabel={o.title}
+          />
+        ) : (
+          <View
+            style={{
+              flex: 1,
+              alignItems: "center",
+              justifyContent: "center",
+              backgroundColor: "#102D43",
+            }}
+          >
+            <Icon
+              name={o.category === "marine" ? "boat-outline" : "cube-outline"}
+              size={compact ? 48 : 62}
+              color="#D9B879"
+            />
+            <Text
+              style={{
+                color: "#E8D5B0",
+                fontSize: 10,
+                letterSpacing: 2,
+                marginTop: 8,
+              }}
+            >
+              HAG BROKERS
+            </Text>
+          </View>
+        )}
+
+        {o.reviewed ? (
+          <View
+            style={{
+              position: "absolute",
+              top: 10,
+              left: ar ? undefined : 10,
+              right: ar ? 10 : undefined,
+              backgroundColor: "rgba(9,19,31,0.84)",
+              borderColor: "rgba(217,184,121,0.65)",
+              borderWidth: 1,
+              borderRadius: 20,
+              paddingHorizontal: 10,
+              paddingVertical: 6,
+            }}
+          >
+            <Text style={{ color: "#F2DEB5", fontSize: 10, fontWeight: "600" }}>
+              {t("فرصة تمت مراجعتها", "REVIEWED OPPORTUNITY")}
+            </Text>
+          </View>
+        ) : null}
+
         <View
           style={{
-            height: 130,
-            backgroundColor: "#102D43",
-            borderRadius: 12,
-            alignItems: "center",
+            position: "absolute",
+            bottom: 0,
+            left: 0,
+            right: 0,
+            height: 58,
+            backgroundColor: "rgba(3,20,33,0.42)",
             justifyContent: "center",
-            marginBottom: 12,
+            paddingHorizontal: 13,
           }}
         >
-          <Icon
-            name={o.category === "marine" ? "boat-outline" : "cube-outline"}
-            size={60}
-            color="#D9B879"
-          />
+          <Text
+            numberOfLines={1}
+            style={{
+              color: "#FFFFFF",
+              fontSize: 11,
+              fontWeight: "600",
+              textAlign: ar ? "right" : "left",
+            }}
+          >
+            {o.category
+              ? label(o.category, ar)
+              : t("فرصة تجارية", "Business opportunity")}
+          </Text>
         </View>
-      )}
+      </View>
+
       <Row between>
         <Badge>{label(o.type, ar)}</Badge>
-        {o.reviewed && (
-          <Txt muted size={11}>
-            {t("تمت المراجعة", "Reviewed")}
-          </Txt>
-        )}
+        <Txt muted size={10}>
+          {t("فرصة تجارية", "BUSINESS LISTING")}
+        </Txt>
       </Row>
+
       <Txt
-        numberOfLines={compact ? 2 : undefined}
-        size={compact ? 14 : 18}
+        numberOfLines={compact ? 2 : 3}
+        size={compact ? 14 : 17}
         bold
-        style={{ marginTop: 10 }}
+        style={{ marginTop: 11, minHeight: compact ? 44 : 52 }}
       >
         {o.title}
       </Txt>
-      <Txt muted size={12}>
-        {[o.city, o.country].filter(Boolean).join(" · ")}
-      </Txt>
-      <Txt style={{ color: c.gold, marginTop: 8 }}>
-        {o.price
-          ? `${o.price} ${o.currency}`
-          : t("السعر عند التفاوض", "Price on enquiry")}
-      </Txt>
+
+      {location ? (
+        <View
+          style={{
+            flexDirection: ar ? "row-reverse" : "row",
+            alignItems: "center",
+            gap: 5,
+            marginTop: 5,
+          }}
+        >
+          <Icon name="location-outline" size={14} color={c.muted} />
+          <Txt muted size={11} numberOfLines={1}>
+            {location}
+          </Txt>
+        </View>
+      ) : null}
+
+      <View
+        style={{
+          marginTop: 13,
+          paddingHorizontal: 11,
+          paddingVertical: 9,
+          borderRadius: 11,
+          backgroundColor: c.soft,
+          borderWidth: 1,
+          borderColor: c.line,
+          flexDirection: ar ? "row-reverse" : "row",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 6,
+        }}
+      >
+        <Txt muted size={10}>
+          {t("القيمة", "INDICATIVE PRICE")}
+        </Txt>
+        <Text
+          numberOfLines={1}
+          style={{
+            color: c.gold,
+            fontSize: compact ? 11 : 13,
+            fontWeight: "700",
+            flexShrink: 1,
+            textAlign: ar ? "left" : "right",
+          }}
+        >
+          {o.price
+            ? `${o.price} ${o.currency}`
+            : t("السعر عند التفاوض", "Price on enquiry")}
+        </Text>
+      </View>
     </Card>
   );
 }
