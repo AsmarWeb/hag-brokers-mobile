@@ -18,7 +18,11 @@ import {
 } from "../ui";
 import { nativeSecureStorage, deviceName } from "../core/vault";
 import { ApiError } from "../core/api";
-import { isCompanyLeader, parseSession } from "../core/account";
+import {
+  hasCompletedPhoneSetup,
+  isCompanyLeader,
+  parseSession,
+} from "../core/account";
 import { validateAuth, authFieldMessage } from "../core/authValidation";
 import { label } from "../core/labels";
 
@@ -262,15 +266,15 @@ export function Account() {
       </View>
       {user &&
       user.phone_verification_required &&
-      !user.phone_verified &&
+      !hasCompletedPhoneSetup(user) &&
       !user.is_carrier ? (
         <MenuGroup>
           <MenuRow
             icon="shield-checkmark-outline"
-            title={t("توثيق رقم الهاتف", "Verify phone number")}
+            title={t("إكمال خطوة تأكيد الهاتف", "Complete phone confirmation")}
             sub={t(
-              "وثّق هاتفك لتأمين الحساب وفتح وظائف الشركة.",
-              "Verify your phone to secure your account and unlock company features.",
+              "أدخل رقم هاتفك وأكمل خطوة التأكيد عبر بريدك الإلكتروني لفتح وظائف الشركة. هذه الخطوة لا تثبت ملكية الرقم.",
+              "Enter your phone number and complete the confirmation step through your email to unlock company features. This does not prove phone-number ownership.",
             )}
             onPress={() =>
               go({
@@ -283,7 +287,7 @@ export function Account() {
         </MenuGroup>
       ) : null}
       {user &&
-      (!user.phone_verification_required || user.phone_verified) &&
+      hasCompletedPhoneSetup(user) &&
       !user.company &&
       !user.is_carrier ? (
         <MenuGroup>
@@ -845,8 +849,8 @@ export function PhoneVerification({
       setNotice(
         result.data?.verification_sent
           ? t(
-              "أرسلنا رمز التحقق إلى رقمك.",
-              "A verification code was sent to your phone.",
+              "أرسلنا رمز التأكيد إلى بريدك الإلكتروني المسجل. هذا لا يثبت ملكية رقم الهاتف.",
+              "A confirmation code was sent to your registered email. This does not prove phone-number ownership.",
             )
           : t(
               "تعذر إرسال الرمز الآن. انتظر مهلة الإرسال ثم حاول مجددًا.",
@@ -866,16 +870,15 @@ export function PhoneVerification({
     setError(null);
     setNotice("");
     try {
-      const result = await api.request<{ data?: { phone_verified?: boolean } }>(
-        "/auth/verify-phone",
-        { method: "POST", body: { code } },
-      );
-      if (result.data?.phone_verified !== true) throw new ApiError(502);
+      const result = await api.request<{
+        data?: { phone_verified?: boolean; phone_setup_completed?: boolean };
+      }>("/auth/verify-phone", { method: "POST", body: { code } });
+      if (result.data?.phone_setup_completed !== true) throw new ApiError(502);
       setCode("");
       setNotice(
         t(
-          "تم توثيق رقم الهاتف. يمكنك الآن إعداد مساحة شركتك.",
-          "Your phone is verified. You can now set up your company workspace.",
+          "اكتملت خطوة تأكيد الرقم عبر البريد الإلكتروني. هذا لا يثبت ملكية رقم الهاتف. يمكنك الآن إعداد مساحة شركتك.",
+          "The phone confirmation step was completed using email. This does not prove phone-number ownership. You can now set up your company workspace.",
         ),
       );
       await refreshUser();
@@ -889,7 +892,7 @@ export function PhoneVerification({
   return (
     <Screen>
       <Title
-        title={t("توثيق رقم الهاتف", "Verify your phone number")}
+        title={t("إكمال خطوة تأكيد الهاتف", "Complete phone confirmation")}
         sub={t(
           "هذه الخطوة تأتي بعد تسجيل الدخول لحماية حسابك.",
           "This step happens after sign-in to protect your account.",
@@ -914,9 +917,14 @@ export function PhoneVerification({
               onPress={() => go({ name: "auth" })}
             />
           </>
-        ) : user.phone_verified ? (
+        ) : hasCompletedPhoneSetup(user) ? (
           <>
-            <Txt bold>{t("رقم الهاتف موثّق", "Phone verified")}</Txt>
+            <Txt bold>
+              {t(
+                "اكتملت خطوة تأكيد الرقم عبر البريد",
+                "Phone step completed via email",
+              )}
+            </Txt>
             <Txt muted>
               {t(
                 "يمكنك متابعة إعداد مساحة شركتك من حسابك.",
@@ -983,7 +991,7 @@ export function PhoneVerification({
                   title={
                     busy
                       ? t("جارٍ التحقق…", "Verifying…")
-                      : t("تأكيد الهاتف", "Verify phone")
+                      : t("إكمال خطوة التأكيد", "Complete confirmation")
                   }
                   onPress={() => void confirmCode()}
                 />
@@ -1019,7 +1027,7 @@ export function CompanyOnboarding() {
   async function submit() {
     if (busy || !companyName.trim() || !/^[A-Za-z]{2}$/.test(countryCode))
       return;
-    if (!user?.phone_verified) {
+    if (!hasCompletedPhoneSetup(user)) {
       go({
         name: "verify-phone",
         email: user?.email ?? "",
@@ -1220,7 +1228,7 @@ export function SecuritySettings() {
     }
   }
   async function sendPhoneCode() {
-    if (busy || !user?.phone || user.phone_verified === true) return;
+    if (busy || !user?.phone || hasCompletedPhoneSetup(user)) return;
     setBusy(true);
     setError(null);
     setNotice("");
@@ -1231,8 +1239,8 @@ export function SecuritySettings() {
       setPhoneRequested(true);
       setNotice(
         t(
-          "إذا كان الحساب مؤهلاً، فسيتم إرسال رمز التحقق إلى رقم الهاتف المسجل.",
-          "If the account is eligible, a verification code will be sent to its registered phone.",
+          "إذا كان الحساب مؤهلاً، فسيتم إرسال رمز التأكيد إلى بريده الإلكتروني المسجل. هذا لا يثبت ملكية رقم الهاتف.",
+          "If eligible, a confirmation code will be sent to the account's registered email. This does not prove phone-number ownership.",
         ),
       );
     } catch (e) {
@@ -1251,6 +1259,7 @@ export function SecuritySettings() {
       const result = await api.request<{
         data: {
           phone_verified: boolean;
+          phone_setup_completed: boolean;
           email_verified: boolean;
           account_verified: boolean;
         };
@@ -1259,13 +1268,16 @@ export function SecuritySettings() {
         body: { code: phoneCode },
       });
 
-      if (result.data?.phone_verified !== true) throw new ApiError(502);
+      if (result.data?.phone_setup_completed !== true) throw new ApiError(502);
 
       await refreshUser();
       setPhoneCode("");
       setPhoneRequested(false);
       setNotice(
-        t("تم توثيق رقم الهاتف بنجاح.", "Phone number verified successfully."),
+        t(
+          "اكتملت خطوة تأكيد الرقم عبر البريد الإلكتروني. هذا لا يثبت ملكية رقم الهاتف.",
+          "The phone confirmation step was completed using email. This does not prove phone-number ownership.",
+        ),
       );
     } catch (e) {
       setError(e);
@@ -1330,34 +1342,37 @@ export function SecuritySettings() {
         <Row>
           <Icon
             name={
-              user.phone_verified === true
+              hasCompletedPhoneSetup(user)
                 ? "shield-checkmark-outline"
                 : "call-outline"
             }
             size={29}
           />
           <Txt bold>
-            {user.phone_verified === true
-              ? t("رقم الهاتف موثّق", "Phone verified")
-              : t("توثيق رقم الهاتف", "Verify phone number")}
+            {hasCompletedPhoneSetup(user)
+              ? t(
+                  "اكتملت خطوة تأكيد الرقم عبر البريد",
+                  "Phone step completed via email",
+                )
+              : t("إكمال خطوة تأكيد الهاتف", "Complete phone confirmation")}
           </Txt>
         </Row>
         {user.phone ? (
           <>
             <Txt muted>{user.phone}</Txt>
-            {user.phone_verified === true ? (
+            {hasCompletedPhoneSetup(user) ? (
               <Txt muted size={12}>
                 {t(
-                  "تم تأكيد رقم الهاتف المرتبط بحسابك.",
-                  "The phone number linked to your account is confirmed.",
+                  "اكتملت خطوة تأكيد الرقم عبر البريد الإلكتروني، دون إثبات ملكية الرقم.",
+                  "The phone confirmation step was completed by email; phone-number ownership is not verified.",
                 )}
               </Txt>
             ) : (
               <>
                 <Txt muted size={12}>
                   {t(
-                    "أرسل رمز تحقق إلى رقم الهاتف المسجل، ثم أدخل الرمز المكوّن من ستة أرقام.",
-                    "Request a code for your registered phone, then enter the six-digit code.",
+                    "سنرسل رمز التأكيد إلى بريدك الإلكتروني المسجل. أدخل الرمز المكوّن من ستة أرقام لإكمال الخطوة.",
+                    "We will email a confirmation code to your registered email. Enter the six-digit code to complete this step.",
                   )}
                 </Txt>
                 <Button
@@ -1378,7 +1393,7 @@ export function SecuritySettings() {
                     />
                     <Button
                       disabled={busy || phoneCode.length !== 6}
-                      title={t("تأكيد رقم الهاتف", "Verify phone number")}
+                      title={t("تأكيد رقم الهاتف", "Complete phone setup")}
                       onPress={() => void confirmPhoneCode()}
                     />
                     <Button
